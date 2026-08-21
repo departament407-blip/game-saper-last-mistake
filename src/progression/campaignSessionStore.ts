@@ -34,6 +34,11 @@ export class CampaignSessionStore {
     return this.getState();
   }
 
+  restoreSession(session: CampaignSessionState): CampaignSessionState {
+    this.state = normalizeSession(session);
+    return this.getState();
+  }
+
   getState(): CampaignSessionState {
     return cloneSession(this.state);
   }
@@ -455,6 +460,37 @@ function cloneSession(session: CampaignSessionState): CampaignSessionState {
     profiles: Object.fromEntries(
       Object.entries(session.profiles).map(([characterId, profile]) => [characterId, cloneProfile(profile)])
     )
+  };
+}
+
+function normalizeSession(session: CampaignSessionState): CampaignSessionState {
+  const fallback = createFreshSession(session.mode === "solo" ? "solo" : "squad", session.playerId || "local-preview-player", session.playerName || "Игрок");
+  const rosterIds = Array.isArray(session.rosterIds) && session.rosterIds.length > 0
+    ? session.rosterIds.filter((id) => CHARACTERS.some((character) => character.id === id))
+    : fallback.rosterIds;
+  const profiles = Object.fromEntries(
+    rosterIds.map((characterId) => {
+      const profile = session.profiles?.[characterId] ?? createEmptyProfile(characterId);
+      return [characterId, normalizeProfile(profile)];
+    })
+  );
+
+  return {
+    id: typeof session.id === "string" ? session.id : fallback.id,
+    mode: session.mode === "solo" ? "solo" : "squad",
+    playerId: typeof session.playerId === "string" ? session.playerId : fallback.playerId,
+    playerName: typeof session.playerName === "string" ? session.playerName : fallback.playerName,
+    startedAt: typeof session.startedAt === "number" ? session.startedAt : fallback.startedAt,
+    cycle: Math.max(1, Math.min(MAX_CAMPAIGN_CYCLES, Number(session.cycle) || fallback.cycle)),
+    rosterIds,
+    soloOperativeId: typeof session.soloOperativeId === "string" ? session.soloOperativeId : null,
+    operationPool: Array.isArray(session.operationPool) && session.operationPool.length > 0
+      ? session.operationPool.map((operation) => ({ ...operation }))
+      : fallback.operationPool,
+    completedOperationIds: Array.isArray(session.completedOperationIds) ? [...session.completedOperationIds] : [],
+    endgameUnlocked: Boolean(session.endgameUnlocked),
+    campaignCompleted: Boolean(session.campaignCompleted),
+    profiles
   };
 }
 

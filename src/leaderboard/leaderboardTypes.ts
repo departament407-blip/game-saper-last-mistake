@@ -25,6 +25,9 @@ export interface LeaderboardRecord {
   parTimeSeconds: number;
   medalsEarnedCount: number;
   remainingHp: number;
+  rankIndex: number;
+  rankBonus: number;
+  scoreBreakdown: LeaderboardScoreBreakdown;
   usedPerks: string[];
 }
 
@@ -61,12 +64,35 @@ export interface ScoreInput {
   elapsedSeconds: number;
   remainingHp?: number;
   medalsEarnedCount?: number;
+  rankIndex?: number;
+}
+
+export interface LeaderboardScoreBreakdown {
+  baseOperationXp: number;
+  timeBonus: number;
+  hpBonus: number;
+  medalBonus: number;
+  rankBonus: number;
+  total: number;
 }
 
 export function calculateLeaderboardScore(input: ScoreInput): number {
+  return getLeaderboardScoreBreakdown(input).total;
+}
+
+export function getLeaderboardScoreBreakdown(input: ScoreInput): LeaderboardScoreBreakdown {
   const timeBonus = Math.max(0, input.parTimeSeconds - input.elapsedSeconds) * 2;
   const hpBonus = Math.max(0, input.remainingHp ?? 0) * 10;
   const medalBonus = Math.max(0, input.medalsEarnedCount ?? 0) * 25;
+  const rankBonus = Math.max(0, input.rankIndex ?? 0) * 10;
+  const total = Math.max(0, Math.round(input.baseOperationXp + timeBonus + hpBonus + medalBonus + rankBonus));
 
-  return Math.max(0, Math.round(input.baseOperationXp + timeBonus + hpBonus + medalBonus));
+  return {
+    baseOperationXp: input.baseOperationXp,
+    timeBonus,
+    hpBonus,
+    medalBonus,
+    rankBonus,
+    total
+  };
 }

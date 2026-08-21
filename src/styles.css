@@ -653,6 +653,37 @@ h1 {
     0 8px 18px rgba(29, 36, 48, 0.12);
 }
 
+.hud-item--flag-mode {
+  gap: 6px;
+}
+
+.flag-mode-button {
+  min-height: 34px;
+  padding: 5px 10px;
+}
+
+.flag-mode-button.is-active {
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(255, 113, 89, 0.92), rgba(163, 38, 34, 0.94));
+  border-color: rgba(255, 201, 180, 0.82);
+  box-shadow:
+    inset 0 -3px 0 rgba(96, 18, 18, 0.42),
+    0 0 18px rgba(225, 74, 58, 0.32);
+}
+
+.cell.is-flag-target:not(.is-revealed) {
+  outline: 2px solid rgba(221, 72, 58, 0.28);
+  outline-offset: -4px;
+}
+
+.cell.is-flag-target:not(.is-revealed):hover {
+  filter: brightness(1.06) saturate(1.08);
+  box-shadow:
+    inset 0 0 0 2px rgba(221, 72, 58, 0.32),
+    0 0 12px rgba(221, 72, 58, 0.18);
+}
+
 .meta-line {
   color: var(--muted);
   font-weight: 800;

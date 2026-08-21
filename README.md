@@ -70,6 +70,16 @@ $env:PORT="4174"; npm run start
 
 Для отдельного Railway-домена используется Vite `base: "/"`.
 
+## Save/API readiness
+
+Сейчас прогресс кампании и таблица рекордов работают через `localStorage`. Если позже появится backend на Railway, фронтенд уже готов переключиться на API через переменную:
+
+```env
+VITE_API_BASE_URL=https://your-api.railway.app
+```
+
+SQL-заготовка для PostgreSQL лежит в `server/sql/init.sql`. В текущей версии backend не запускается и не требуется для публикации игры.
+
 ## Почему нельзя открывать index.html двойным кликом
 
 Проект использует Vite и TypeScript. Браузер не компилирует TypeScript из `src/main.ts` при запуске через `file://`, поэтому игру нужно запускать через dev server или production server:

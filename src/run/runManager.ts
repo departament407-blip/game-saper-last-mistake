@@ -109,7 +109,7 @@ export class RunManager {
     this.syncState();
 
     if (result.kind !== "ignored") {
-      if (result.kind === "flagged" && result.cell && !result.cell.hasMine) {
+      if (result.kind === "flagged" && result.state.firstMoveDone && result.cell && !result.cell.hasMine) {
         this.wrongFlagPenaltyIds.add(result.cell.id);
       }
 

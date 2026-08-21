@@ -6,15 +6,17 @@ import { pickCharacterQuote, type CharacterQuoteEvent } from "./data/characterQu
 import { getCharacterPerks, getPerk, getPerkDescription, getPerkEffectDescription, getNextPerkEffectDescription } from "./data/perks";
 import type { ClassicOperation } from "./data/operations";
 import { getRankProgressionForCharacter } from "./data/rankProgression";
-import { getHpBonusByXp, getNextRankBenefit, getPerkTierByXp, getUnlockedRankBenefits } from "./data/rankBenefits";
+import { getHpBonusByXp, getNextRankBenefit, getPerkTierByXp, getRankIndexByXp, getUnlockedRankBenefits } from "./data/rankBenefits";
 import { getNextRank, getRankById } from "./data/ranks";
 import { EventBus } from "./events/eventBus";
 import type { GameEventMap } from "./events/gameEvents";
-import { LocalLeaderboardRepository } from "./leaderboard/localLeaderboardRepository";
-import { calculateLeaderboardScore } from "./leaderboard/leaderboardTypes";
+import { createLeaderboardRepository } from "./leaderboard/leaderboardRepositoryFactory";
+import { getLeaderboardScoreBreakdown } from "./leaderboard/leaderboardTypes";
 import type { GlobalLeaderboardRecord, LeaderboardRecord, OperationLeaderboardFilter } from "./leaderboard/leaderboardTypes";
-import { getBiomeLabel, getModeLabel, setLanguage, t } from "./localization/i18n";
+import { getBiomeLabel, getLanguage, getModeLabel, setLanguage, t } from "./localization/i18n";
 import { loadPlayerIdentity, savePlayerIdentity, type PlayerIdentity } from "./player/playerIdentity";
+import { createProgressRepository } from "./progress/progressRepositoryFactory";
+import type { SavedGameProgress } from "./progress/progressTypes";
 import { CampaignSessionStore } from "./progression/campaignSessionStore";
 import type { CampaignMode, MissionResult, OperativeSessionProfile, OperativeStatus } from "./progression/campaignTypes";
 import { RunManager } from "./run/runManager";
@@ -41,7 +43,8 @@ if (!root) {
 const refs = createApp(root);
 const bus = new EventBus<GameEventMap>();
 const campaignStore = new CampaignSessionStore();
-const leaderboardRepository = new LocalLeaderboardRepository();
+const leaderboardRepository = createLeaderboardRepository();
+const progressRepository = createProgressRepository();
 const runManager = new RunManager(bus, campaignStore);
 
 let playerIdentity: PlayerIdentity = loadPlayerIdentity();
@@ -63,6 +66,7 @@ let tacticalScanCharge = 0;
 let tacticalScanMax = 0;
 let tacticalRepairCharge = 0;
 let tacticalRepairMax = 0;
+let flagModeEnabled = false;
 let campaignActive = false;
 let campaignJustStarted = false;
 let confirmAction: (() => void) | null = null;
@@ -75,6 +79,7 @@ const boardView = new BoardView(refs.boardWrap, refs.board, runManager, bus, {
 const hudView = new HudView(refs, runManager, bus);
 
 refs.playerNameInput.value = playerIdentity.displayName;
+void updateContinueButton();
 
 refs.playerNameInput.addEventListener("input", () => {
   refs.playerNameError.classList.add("is-hidden");
@@ -115,6 +120,7 @@ refs.mainStartButton.addEventListener("click", () => {
   campaignActive = true;
   campaignJustStarted = true;
   lastQuotes.clear();
+  void persistCampaign();
 
   if (selectedCampaignMode === "solo") {
     renderSoloRoster();
@@ -122,6 +128,26 @@ refs.mainStartButton.addEventListener("click", () => {
     return;
   }
 
+  enterPreparation();
+});
+
+refs.mainContinueButton.addEventListener("click", async () => {
+  const saved = await progressRepository.load(playerIdentity.playerId);
+
+  if (!saved) {
+    await updateContinueButton();
+    return;
+  }
+
+  playerIdentity = savePlayerIdentity(saved.playerIdentity.displayName, saved.playerIdentity, saved.playerIdentity.email);
+  setLanguage(saved.language);
+  refs.playerNameInput.value = playerIdentity.displayName;
+  campaignStore.restoreSession(saved.campaign);
+  selectedCampaignMode = saved.campaign.mode;
+  selectedOperationId = campaignStore.getOpenOperations()[0]?.id ?? campaignStore.getOperationPool()[0]?.id ?? "";
+  campaignActive = !campaignStore.isSessionEnded();
+  campaignJustStarted = false;
+  lastQuotes.clear();
   enterPreparation();
 });
 
@@ -146,6 +172,7 @@ refs.soloBackButton.addEventListener("click", () => {
 
 refs.soloConfirmButton.addEventListener("click", () => {
   campaignStore.lockSoloOperative(selectedSoloCharacterId);
+  void persistCampaign();
   enterPreparation();
 });
 
@@ -181,7 +208,12 @@ refs.startOperationButton.addEventListener("click", () => {
     return;
   }
 
+  setFlagMode(false);
   runManager.newGame(operation, true, { characterId });
+});
+
+refs.flagModeButton.addEventListener("click", () => {
+  setFlagMode(!flagModeEnabled);
 });
 
 refs.tacticalButton.addEventListener("click", () => {
@@ -205,6 +237,7 @@ refs.tacticalButton.addEventListener("click", () => {
     return;
   }
 
+  setFlagMode(false);
   setCharacterQuote(character.id, "perkReady");
   boardView.setTacticalMode(true);
   refs.tacticalResult.textContent = t("hud.scanPickCell");
@@ -274,6 +307,7 @@ bus.on("GAME_STARTED", ({ biome, character }) => {
   clearPendingDebrief();
   debriefCharacterId = character.id;
   lastMissionResult = null;
+  setFlagMode(false);
   setPageBiome(biome.cssClass);
   setupTacticalPerk(character.id);
   renderOperationSidePanel(character.id);
@@ -290,10 +324,12 @@ bus.on("PERK_USED", ({ character }) => {
 });
 
 bus.on("RUN_WON", ({ character, operation, biome, result }) => {
+  setFlagMode(false);
   debriefCharacterId = character.id;
   lastMissionResult = result;
   campaignActive = !result.sessionEnded;
   saveWinRecord(operation, biome.id, character, result);
+  void persistCampaign();
   renderOperationSidePanel(character.id, result.profile);
   renderOperationPool();
   renderOperativeSelect(character.id);
@@ -302,6 +338,7 @@ bus.on("RUN_WON", ({ character, operation, biome, result }) => {
 });
 
 bus.on("RUN_LOST", ({ character, result }) => {
+  setFlagMode(false);
   debriefCharacterId = character.id;
   lastMissionResult = result;
   campaignActive = !result.sessionEnded;
@@ -309,6 +346,7 @@ bus.on("RUN_LOST", ({ character, result }) => {
   renderOperationPool();
   renderOperativeSelect();
   setDebriefQuote(character.id, result.profile.status === "active" ? "survivedBlast" : "defeat");
+  void persistCampaign();
   clearPendingDebrief();
   pendingDebriefTimer = window.setTimeout(() => {
     pendingDebriefTimer = null;
@@ -924,13 +962,23 @@ function saveWinRecord(operation: ClassicOperation, biomeId: ClassicOperation["b
   const biome = getBiome(biomeId);
   const medalsEarnedCount = result.newMedalIds.length;
   const remainingHp = result.profile.hp;
-  const score = calculateLeaderboardScore({
+  const rankIndex = getRankIndexByXp(result.profile.xp);
+  const scoreBreakdown = getLeaderboardScoreBreakdown({
     baseOperationXp: operation.xpWin,
     parTimeSeconds: operation.parTimeSeconds,
     elapsedSeconds: result.elapsedSeconds,
     remainingHp,
-    medalsEarnedCount
+    medalsEarnedCount,
+    rankIndex
   });
+  const score = scoreBreakdown.total;
+
+  refs.debriefAwards.insertAdjacentHTML("beforeend", `
+    <span class="award-pill score">
+      <b>${t("common.score")}: ${score}</b>
+      <small>XP ${scoreBreakdown.baseOperationXp} · время +${scoreBreakdown.timeBonus} · HP +${scoreBreakdown.hpBonus} · медали +${scoreBreakdown.medalBonus} · звание +${scoreBreakdown.rankBonus}</small>
+    </span>
+  `);
 
   void leaderboardRepository.saveRecord({
     playerId: campaignStore.getPlayerId(),
@@ -953,6 +1001,9 @@ function saveWinRecord(operation: ClassicOperation, biomeId: ClassicOperation["b
     parTimeSeconds: operation.parTimeSeconds,
     medalsEarnedCount,
     remainingHp,
+    rankIndex,
+    rankBonus: scoreBreakdown.rankBonus,
+    scoreBreakdown,
     usedPerks: result.perkEvents
   });
 }
@@ -1160,6 +1211,7 @@ function hardReturnToMainMenu(): void {
   lastMissionResult = null;
   campaignActive = false;
   campaignJustStarted = false;
+  void progressRepository.clear(playerIdentity.playerId).then(() => updateContinueButton());
   showScreen(refs, "mainMenu");
 }
 
@@ -1208,6 +1260,32 @@ function clearOutcomeState(): void {
   hudView.clearSceneState();
   refs.debriefScreen.classList.add("is-hidden");
   refs.debriefPanel.classList.remove("is-win", "is-loss");
+}
+
+function setFlagMode(enabled: boolean): void {
+  flagModeEnabled = enabled;
+  boardView.setFlagMode(enabled);
+  refs.flagModeButton.classList.toggle("is-active", enabled);
+  refs.flagModeButton.setAttribute("aria-pressed", String(enabled));
+  refs.inputModeLabel.textContent = enabled ? t("hud.modeFlag") : t("hud.modeReveal");
+}
+
+async function persistCampaign(): Promise<void> {
+  const progress: SavedGameProgress = {
+    version: 1,
+    playerIdentity,
+    language: getLanguage(),
+    campaign: campaignStore.getState(),
+    savedAt: Date.now()
+  };
+
+  await progressRepository.save(progress);
+  await updateContinueButton();
+}
+
+async function updateContinueButton(): Promise<void> {
+  const hasSavedCampaign = await progressRepository.has(playerIdentity.playerId);
+  refs.mainContinueButton.classList.toggle("is-hidden", !hasSavedCampaign);
 }
 
 function tierLabel(tier: ClassicOperation["tier"]): string {

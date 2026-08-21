@@ -7,6 +7,7 @@ import type {
   LeaderboardRepository,
   OperationLeaderboardFilter
 } from "./leaderboardTypes";
+import { getLeaderboardScoreBreakdown } from "./leaderboardTypes";
 
 const STORAGE_KEY = "minesweeper:last-mistake:leaderboard-records";
 const LEGACY_STORAGE_KEY = "minesweeper:last-mistake:local-records";
@@ -74,6 +75,27 @@ function normalizeRecord(record: Partial<LeaderboardRecord> & Record<string, unk
   const parTimeSeconds = positiveNumber(record.parTimeSeconds, getFallbackParTime(record.operationIndex));
   const remainingHp = positiveNumber(record.remainingHp, 0);
   const medalsEarnedCount = positiveNumber(record.medalsEarnedCount, 0);
+  const rankIndex = positiveNumber(record.rankIndex, 0);
+  const fallbackBreakdown = getLeaderboardScoreBreakdown({
+    baseOperationXp,
+    parTimeSeconds,
+    elapsedSeconds,
+    remainingHp,
+    medalsEarnedCount,
+    rankIndex
+  });
+  const rawBreakdown = typeof record.scoreBreakdown === "object" && record.scoreBreakdown !== null
+    ? record.scoreBreakdown as Partial<LeaderboardRecord["scoreBreakdown"]>
+    : {};
+  const scoreBreakdown: LeaderboardRecord["scoreBreakdown"] = {
+    baseOperationXp: positiveNumber(rawBreakdown.baseOperationXp, fallbackBreakdown.baseOperationXp),
+    timeBonus: positiveNumber(rawBreakdown.timeBonus, fallbackBreakdown.timeBonus),
+    hpBonus: positiveNumber(rawBreakdown.hpBonus, fallbackBreakdown.hpBonus),
+    medalBonus: positiveNumber(rawBreakdown.medalBonus, fallbackBreakdown.medalBonus),
+    rankBonus: positiveNumber(rawBreakdown.rankBonus, fallbackBreakdown.rankBonus),
+    total: positiveNumber(rawBreakdown.total, fallbackBreakdown.total)
+  };
+  const score = positiveNumber(record.score, scoreBreakdown.total);
 
   return {
     id: stringValue(record.id) || createRecordId(),
@@ -92,13 +114,16 @@ function normalizeRecord(record: Partial<LeaderboardRecord> & Record<string, unk
     operativeId: stringValue(record.operativeId) || legacyCharacterId || "unknown",
     operativeName: stringValue(record.operativeName) || legacyCharacterName || "Оперативник",
     elapsedSeconds,
-    score: positiveNumber(record.score, Math.max(0, baseOperationXp - elapsedSeconds)),
+    score,
     result: "win",
     createdAt: positiveNumber(record.createdAt, Date.now()),
     baseOperationXp,
     parTimeSeconds,
     medalsEarnedCount,
     remainingHp,
+    rankIndex,
+    rankBonus: positiveNumber(record.rankBonus, scoreBreakdown.rankBonus),
+    scoreBreakdown,
     usedPerks: Array.isArray(record.usedPerks) ? record.usedPerks.map(String) : []
   };
 }

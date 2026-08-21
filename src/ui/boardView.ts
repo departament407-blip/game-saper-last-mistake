@@ -18,6 +18,7 @@ const FLAG_MARKUP = `
 export class BoardView {
   private suppressCellId: string | null = null;
   private tacticalMode = false;
+  private flagMode = false;
   private tacticalCellIds = new Set<string>();
 
   constructor(
@@ -38,6 +39,11 @@ export class BoardView {
 
   setTacticalMode(enabled: boolean): void {
     this.tacticalMode = enabled;
+    this.render(this.runManager.getState());
+  }
+
+  setFlagMode(enabled: boolean): void {
+    this.flagMode = enabled;
     this.render(this.runManager.getState());
   }
 
@@ -76,6 +82,11 @@ export class BoardView {
 
         if (this.suppressCellId === cell.id) {
           this.suppressCellId = null;
+          return;
+        }
+
+        if (this.flagMode && state.status === "playing" && cell.state !== "revealed") {
+          this.runManager.toggleFlag(cell.row, cell.col);
           return;
         }
 
@@ -151,6 +162,10 @@ export class BoardView {
 
     if (this.tacticalMode && state.status === "playing") {
       classes.push("is-tactical-target");
+    }
+
+    if (this.flagMode && state.status === "playing" && cell.state !== "revealed") {
+      classes.push("is-flag-target");
     }
 
     if (this.tacticalCellIds.has(cell.id)) {

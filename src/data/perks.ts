@@ -48,7 +48,7 @@ export const PERKS: Perk[] = [
     squadDescription: "Ступень 1: 1 временная броня в начале операции; броня поглощает 1 HP урона.",
     soloDescription: "Ступень 1: 1 временная броня в начале операции; броня поглощает 1 HP урона.",
     characterId: "sergei",
-    unlockMinXp: 700,
+    unlockMinXp: 500,
     kind: "temporaryArmor"
   },
   {
@@ -68,7 +68,7 @@ export const PERKS: Perk[] = [
     squadDescription: "Ступень 1: если не было неверных флагов, Сыч получает +20 XP.",
     soloDescription: "Ступень 1: если не было неверных флагов, Сыч получает +20 XP.",
     characterId: "sych",
-    unlockMinXp: 700,
+    unlockMinXp: 500,
     kind: "cleanFlagsBonus"
   },
   {
@@ -88,7 +88,7 @@ export const PERKS: Perk[] = [
     squadDescription: "Ступень 1: после победы случайный другой живой оперативник получает +50 XP.",
     soloDescription: "Ступень 1: после победы Ольга получает +25 XP.",
     characterId: "olga",
-    unlockMinXp: 700,
+    unlockMinXp: 500,
     kind: "reserveXp"
   },
   {
@@ -108,7 +108,7 @@ export const PERKS: Perk[] = [
     squadDescription: "Ступень 1: после победы Искры 10% шанс вернуть случайного павшего с 1 HP.",
     soloDescription: "Ступень 1: один раз за цикл 10% шанс пережить смертельный подрыв с 1 HP; операция провалена.",
     characterId: "iskra",
-    unlockMinXp: 700,
+    unlockMinXp: 500,
     kind: "revive"
   },
   {
@@ -128,7 +128,7 @@ export const PERKS: Perk[] = [
     squadDescription: "Ступень 1: после первого безопасного клика ставит 1 правильный флаг на случайную мину.",
     soloDescription: "Ступень 1: после первого безопасного клика ставит 1 правильный флаг на случайную мину.",
     characterId: "rom",
-    unlockMinXp: 700,
+    unlockMinXp: 500,
     kind: "autoFlags"
   },
   {
@@ -148,7 +148,7 @@ export const PERKS: Perk[] = [
     squadDescription: "Ступень 1: 1 раз за операцию можно выбрать флаг; ошибочный флаг снимается без штрафа.",
     soloDescription: "Ступень 1: 1 раз за операцию можно выбрать флаг; ошибочный флаг снимается без штрафа.",
     characterId: "lada",
-    unlockMinXp: 700,
+    unlockMinXp: 500,
     kind: "flagRepair"
   }
 ];

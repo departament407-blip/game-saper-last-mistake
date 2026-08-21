@@ -1,6 +1,9 @@
 export interface PlayerIdentity {
   playerId: string;
   displayName: string;
+  email: string | null;
+  createdAt: number;
+  lastSeenAt: number;
 }
 
 const STORAGE_KEY = "minesweeper:last-mistake:player-identity";
@@ -11,10 +14,7 @@ export function loadPlayerIdentity(): PlayerIdentity {
     const parsed = raw ? JSON.parse(raw) as Partial<PlayerIdentity> : null;
 
     if (parsed?.playerId) {
-      return {
-        playerId: parsed.playerId,
-        displayName: typeof parsed.displayName === "string" ? parsed.displayName : ""
-      };
+      return persistIdentity(normalizeIdentity(parsed));
     }
   } catch {
     // Ignore corrupted state and recreate it below.
@@ -22,19 +22,25 @@ export function loadPlayerIdentity(): PlayerIdentity {
 
   const fallback: PlayerIdentity = {
     playerId: createPlayerId(),
-    displayName: ""
+    displayName: "",
+    email: null,
+    createdAt: Date.now(),
+    lastSeenAt: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(fallback));
   return fallback;
 }
 
-export function savePlayerIdentity(displayName: string, existing?: PlayerIdentity): PlayerIdentity {
+export function savePlayerIdentity(displayName: string, existing?: PlayerIdentity, email?: string | null): PlayerIdentity {
+  const base = existing ?? loadPlayerIdentity();
   const next: PlayerIdentity = {
-    playerId: existing?.playerId ?? loadPlayerIdentity().playerId,
-    displayName: displayName.trim()
+    playerId: base.playerId,
+    displayName: displayName.trim(),
+    email: email === undefined ? base.email : normalizeEmail(email),
+    createdAt: base.createdAt,
+    lastSeenAt: Date.now()
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  return next;
+  return persistIdentity(next);
 }
 
 function createPlayerId(): string {
@@ -43,4 +49,30 @@ function createPlayerId(): string {
   }
 
   return `player-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizeIdentity(value: Partial<PlayerIdentity>): PlayerIdentity {
+  const now = Date.now();
+
+  return {
+    playerId: typeof value.playerId === "string" && value.playerId.trim() ? value.playerId : createPlayerId(),
+    displayName: typeof value.displayName === "string" ? value.displayName : "",
+    email: normalizeEmail(value.email ?? null),
+    createdAt: typeof value.createdAt === "number" && Number.isFinite(value.createdAt) ? value.createdAt : now,
+    lastSeenAt: now
+  };
+}
+
+function normalizeEmail(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const email = value.trim();
+  return email.includes("@") ? email : null;
+}
+
+function persistIdentity(identity: PlayerIdentity): PlayerIdentity {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
+  return identity;
 }
