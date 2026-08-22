@@ -2674,6 +2674,22 @@ h1 {
   box-shadow: 0 12px 26px rgba(15, 143, 135, 0.22);
 }
 
+.preparation-error {
+  margin: -4px 0 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(178, 36, 36, 0.35);
+  border-left: 4px solid #b22424;
+  border-radius: 8px;
+  background: rgba(255, 243, 239, 0.92);
+  color: #4a1010;
+  font-weight: 900;
+  box-shadow: 0 12px 30px rgba(47, 16, 11, 0.12);
+}
+
+.start-operation-cta[aria-disabled="true"] {
+  filter: saturate(0.8);
+}
+
 .prep-operator-card--portrait .portrait-selector::after {
   content: none;
   display: none;

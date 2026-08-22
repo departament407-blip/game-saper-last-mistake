@@ -20,6 +20,7 @@ import type { SavedGameProgress } from "./progress/progressTypes";
 import { CampaignSessionStore } from "./progression/campaignSessionStore";
 import type { CampaignMode, MissionResult, OperativeSessionProfile, OperativeStatus } from "./progression/campaignTypes";
 import { RunManager } from "./run/runManager";
+import { validateOperationStart } from "./run/operationStartValidation";
 import { BoardView } from "./ui/boardView";
 import { HudView } from "./ui/hudView";
 import { hydratePortraitFallbacks, renderPortraitMarkup } from "./ui/portraitView";
@@ -197,19 +198,20 @@ refs.operationProfileButton.addEventListener("click", () => {
 
 refs.characterSelect.addEventListener("change", () => {
   refs.prepProfileButton.disabled = refs.characterSelect.value === "";
+  clearPreparationError();
   renderOperativeBriefing();
 });
 
-refs.startOperationButton.addEventListener("click", () => {
-  const characterId = getSelectedPreparationCharacterId();
-  const operation = campaignStore.getOperationById(selectedOperationId);
+refs.preparationScreen.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const startButton = target?.closest("[data-role='start-operation']");
 
-  if (!characterId || !operation) {
+  if (!startButton) {
     return;
   }
 
-  setFlagMode(false);
-  runManager.newGame(operation, true, { characterId });
+  event.preventDefault();
+  beginSelectedOperation();
 });
 
 refs.flagModeButton.addEventListener("click", () => {
@@ -360,12 +362,99 @@ showScreen(refs, "mainMenu");
 
 function enterPreparation(preferredCharacterId?: string): void {
   clearOutcomeState();
+  clearPreparationError();
   renderOperationPool();
   renderOperativeSelect(preferredCharacterId);
   renderSelectedOperation();
   const operation = campaignStore.getOperationById(selectedOperationId);
   setPageBiome(getBiome(operation.biomeId).cssClass);
   showScreen(refs, "preparation");
+}
+
+function beginSelectedOperation(): void {
+  clearPreparationError();
+
+  const mode = campaignStore.getMode();
+  const state = campaignStore.getState();
+  const operation = getSelectedOperationForStart();
+  const characterId = getSelectedPreparationCharacterId();
+  const profile = getPreparationProfile(characterId);
+  const playerName = campaignStore.getPlayerName() || playerIdentity.displayName || refs.playerNameInput.value.trim();
+
+  if (import.meta.env.DEV) {
+    console.debug("beginSelectedOperation", {
+      mode,
+      selectedOperation: operation?.id ?? selectedOperationId,
+      selectedOperative: characterId,
+      playerName
+    });
+  }
+
+  const validation = validateOperationStart({
+    mode,
+    playerName,
+    selectedOperationId,
+    operationExists: Boolean(operation),
+    selectedOperativeId: characterId,
+    operativeStatus: profile?.status,
+    soloOperativeLocked: mode !== "solo" || Boolean(state.soloOperativeId)
+  });
+
+  if (!validation.ok) {
+    showPreparationError(validation.message);
+
+    if (validation.reason === "missingPlayerName") {
+      refs.playerNameError.classList.remove("is-hidden");
+      showScreen(refs, "mainMenu");
+      refs.playerNameInput.focus();
+    }
+
+    if (validation.reason === "missingSoloOperative") {
+      renderSoloRoster();
+      showScreen(refs, "soloSelect");
+    }
+
+    return;
+  }
+
+  if (!operation || !characterId) {
+    showPreparationError("Ошибка запуска операции. Проверьте консоль или начните кампанию заново.");
+    return;
+  }
+
+  try {
+    setFlagMode(false);
+    runManager.newGame(operation, true, { characterId });
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("beginSelectedOperation failed", error);
+    }
+
+    showPreparationError("Ошибка запуска операции. Проверьте консоль или начните кампанию заново.");
+  }
+}
+
+function getSelectedOperationForStart(): ClassicOperation | null {
+  const operations = [...campaignStore.getOpenOperations(), ...campaignStore.getOperationPool()];
+  return operations.find((operation) => operation.id === selectedOperationId) ?? null;
+}
+
+function getPreparationProfile(characterId: string): OperativeSessionProfile | null {
+  if (!characterId) {
+    return null;
+  }
+
+  return campaignStore.getVisibleProfiles().find((profile) => profile.id === characterId) ?? null;
+}
+
+function showPreparationError(message: string): void {
+  refs.preparationError.textContent = message;
+  refs.preparationError.classList.remove("is-hidden");
+}
+
+function clearPreparationError(): void {
+  refs.preparationError.textContent = "";
+  refs.preparationError.classList.add("is-hidden");
 }
 
 function renderSoloRoster(): void {
@@ -427,6 +516,7 @@ function renderOperationPool(): void {
 
   refs.operationList.querySelectorAll<HTMLButtonElement>("[data-operation-id]").forEach((button) => {
     button.addEventListener("click", () => {
+      clearPreparationError();
       selectedOperationId = button.dataset.operationId ?? selectedOperationId;
       renderOperationPool();
       renderSelectedOperation();
@@ -464,7 +554,11 @@ function renderOperativeSelect(preferredId?: string): void {
   }
 
   renderPreparationRoster(visibleProfiles, selectedId);
-  refs.startOperationButton.disabled = selectableProfiles.length === 0 || selectedOperationId === "" || !selectedId;
+  refs.startOperationButton.disabled = false;
+  refs.startOperationButton.setAttribute(
+    "aria-disabled",
+    String(selectableProfiles.length === 0 || selectedOperationId === "" || !selectedId)
+  );
   refs.prepProfileButton.disabled = !getSelectedPreparationCharacterId();
   refs.squadStatus.textContent = getRosterStatusText();
   renderOperativeBriefing();
@@ -510,6 +604,7 @@ function renderPreparationRoster(visibleProfiles: OperativeSessionProfile[], sel
         return;
       }
 
+      clearPreparationError();
       refs.characterSelect.value = characterId;
       renderOperativeSelect(characterId);
     });

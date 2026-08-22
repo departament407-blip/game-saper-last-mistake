@@ -39,6 +39,7 @@ export interface AppRefs {
   operativeBriefing: HTMLElement;
   squadStatus: HTMLElement;
   cycleStatus: HTMLElement;
+  preparationError: HTMLElement;
   operationList: HTMLElement;
   selectedOperationTitle: HTMLElement;
   selectedOperationDescription: HTMLElement;
@@ -160,6 +161,7 @@ export function createApp(root: HTMLElement): AppRefs {
         </header>
 
         <p class="cycle-status" data-role="cycle-status"></p>
+        <p class="preparation-error is-hidden" data-role="preparation-error" role="alert"></p>
 
         <div class="prep-grid">
           <section class="prep-panel prep-operations" aria-label="Выбор операции">
@@ -408,6 +410,7 @@ export function createApp(root: HTMLElement): AppRefs {
     operativeBriefing: query(root, "[data-role='operative-briefing']"),
     squadStatus: query(root, "[data-role='squad-status']"),
     cycleStatus: query(root, "[data-role='cycle-status']"),
+    preparationError: query(root, "[data-role='preparation-error']"),
     operationList: query(root, "[data-role='operation-list']"),
     selectedOperationTitle: query(root, "[data-role='selected-operation-title']"),
     selectedOperationDescription: query(root, "[data-role='selected-operation-description']"),
