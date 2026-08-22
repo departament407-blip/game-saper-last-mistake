@@ -658,6 +658,7 @@ h1 {
 }
 
 .flag-mode-button {
+  display: none;
   min-height: 34px;
   padding: 5px 10px;
 }
@@ -1864,6 +1865,10 @@ h1 {
 }
 
 @media (max-width: 760px) {
+  .flag-mode-button {
+    display: inline-block;
+  }
+
   .app-shell {
     padding: 10px;
     align-items: start;
