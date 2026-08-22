@@ -44,7 +44,10 @@ export class BoardView {
 
   setFlagMode(enabled: boolean): void {
     this.flagMode = enabled;
-    this.render(this.runManager.getState());
+
+    if (this.runManager.hasActiveGame()) {
+      this.render(this.runManager.getState());
+    }
   }
 
   setTacticalCells(cellIds: string[]): void {

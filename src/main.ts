@@ -423,7 +423,6 @@ function beginSelectedOperation(): void {
   }
 
   try {
-    setFlagMode(false);
     runManager.newGame(operation, true, { characterId });
   } catch (error) {
     if (import.meta.env.DEV) {

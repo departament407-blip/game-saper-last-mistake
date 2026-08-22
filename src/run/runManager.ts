@@ -183,6 +183,10 @@ export class RunManager {
     return this.requireCore().getState();
   }
 
+  hasActiveGame(): boolean {
+    return this.core !== null && this.runState !== null;
+  }
+
   getOperation(): ClassicOperation {
     return this.requireRun().operation;
   }
