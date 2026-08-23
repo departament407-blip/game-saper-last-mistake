@@ -9,9 +9,9 @@ export interface BoardViewOptions {
 
 const FLAG_MARKUP = `
   <svg class="flag-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <path d="M9 27V6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-    <path d="M11 7h14l-4 6 4 6H11z" fill="currentColor"/>
-    <path d="M7 27h9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <path class="flag-mark__pole" d="M9 27V5"/>
+    <path class="flag-mark__cloth" d="M10 6h15l-4 6 4 6H10z"/>
+    <path class="flag-mark__base" d="M6 27h11"/>
   </svg>
 `;
 
@@ -63,6 +63,8 @@ export class BoardView {
   render(state: BoardState): void {
     this.boardWrap.style.setProperty("--cols", String(state.cols));
     this.board.style.setProperty("--cols", String(state.cols));
+    this.boardWrap.dataset.boardCols = String(state.cols);
+    this.boardWrap.dataset.boardRows = String(state.rows);
     this.board.innerHTML = "";
 
     state.cells.forEach((cell) => {

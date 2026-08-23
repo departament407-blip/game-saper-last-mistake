@@ -62,7 +62,9 @@ export interface AppRefs {
   timer: HTMLElement;
   status: HTMLElement;
   inputModeLabel: HTMLElement;
+  revealModeButton: HTMLButtonElement;
   flagModeButton: HTMLButtonElement;
+  mobileInputHint: HTMLElement;
   tacticalPanel: HTMLElement;
   tacticalButton: HTMLButtonElement;
   tacticalCharge: HTMLElement;
@@ -277,11 +279,6 @@ export function createApp(root: HTMLElement): AppRefs {
                 <span class="hud-label">${t("hud.status")}</span>
                 <strong class="hud-value" data-role="status">${t("status.idle")}</strong>
               </div>
-              <div class="hud-item hud-item--flag-mode">
-                <span class="hud-label">${t("hud.inputMode")}</span>
-                <strong class="hud-value" data-role="input-mode-label">${t("hud.modeReveal")}</strong>
-                <button class="button button-secondary flag-mode-button" data-role="flag-mode-button" type="button">${t("hud.flagMode")}</button>
-              </div>
             </section>
 
             <section class="tactical-panel" data-role="tactical-panel" aria-label="Тактический перк">
@@ -295,6 +292,18 @@ export function createApp(root: HTMLElement): AppRefs {
             <div class="board-wrap" data-role="board-wrap">
               <div class="board" data-role="board" aria-label="Минное поле"></div>
             </div>
+
+            <section class="mobile-input-panel" aria-label="${t("hud.inputMode")}">
+              <div class="mobile-input-panel__status">
+                <span class="hud-label">${t("hud.inputMode")}</span>
+                <strong data-role="input-mode-label">${t("hud.modeReveal")}</strong>
+              </div>
+              <div class="mobile-input-segments" role="group" aria-label="${t("hud.inputMode")}">
+                <button class="button mobile-input-button reveal-mode-button is-active" data-role="reveal-mode-button" type="button" aria-pressed="true">${t("hud.modeReveal")}</button>
+                <button class="button mobile-input-button flag-mode-button" data-role="flag-mode-button" type="button" aria-pressed="false">${t("hud.modeFlag")}</button>
+              </div>
+              <p class="mobile-input-hint" data-role="mobile-input-hint">${t("hud.revealHint")}</p>
+            </section>
           </div>
         </div>
       </section>
@@ -433,7 +442,9 @@ export function createApp(root: HTMLElement): AppRefs {
     timer: query(root, "[data-role='timer']"),
     status: query(root, "[data-role='status']"),
     inputModeLabel: query(root, "[data-role='input-mode-label']"),
+    revealModeButton: query<HTMLButtonElement>(root, "[data-role='reveal-mode-button']"),
     flagModeButton: query<HTMLButtonElement>(root, "[data-role='flag-mode-button']"),
+    mobileInputHint: query(root, "[data-role='mobile-input-hint']"),
     tacticalPanel: query(root, "[data-role='tactical-panel']"),
     tacticalButton: query<HTMLButtonElement>(root, "[data-role='tactical-button']"),
     tacticalCharge: query(root, "[data-role='tactical-charge']"),

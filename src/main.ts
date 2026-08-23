@@ -67,7 +67,6 @@ let tacticalScanCharge = 0;
 let tacticalScanMax = 0;
 let tacticalRepairCharge = 0;
 let tacticalRepairMax = 0;
-let flagModeEnabled = false;
 let campaignActive = false;
 let campaignJustStarted = false;
 let confirmAction: (() => void) | null = null;
@@ -214,8 +213,12 @@ refs.preparationScreen.addEventListener("click", (event) => {
   beginSelectedOperation();
 });
 
+refs.revealModeButton.addEventListener("click", () => {
+  setFlagMode(false);
+});
+
 refs.flagModeButton.addEventListener("click", () => {
-  setFlagMode(!flagModeEnabled);
+  setFlagMode(true);
 });
 
 refs.tacticalButton.addEventListener("click", () => {
@@ -1357,11 +1360,13 @@ function clearOutcomeState(): void {
 }
 
 function setFlagMode(enabled: boolean): void {
-  flagModeEnabled = enabled;
   boardView.setFlagMode(enabled);
+  refs.revealModeButton.classList.toggle("is-active", !enabled);
+  refs.revealModeButton.setAttribute("aria-pressed", String(!enabled));
   refs.flagModeButton.classList.toggle("is-active", enabled);
   refs.flagModeButton.setAttribute("aria-pressed", String(enabled));
   refs.inputModeLabel.textContent = enabled ? t("hud.modeFlag") : t("hud.modeReveal");
+  refs.mobileInputHint.textContent = enabled ? t("hud.flagHint") : t("hud.revealHint");
 }
 
 async function persistCampaign(): Promise<void> {
