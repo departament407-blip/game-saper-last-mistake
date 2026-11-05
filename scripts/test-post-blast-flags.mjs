@@ -244,4 +244,3 @@ try {
   await browser.close();
 }
 console.log(`Passed ${scenarios} browser scenarios. Screenshots: .vite/flag-browser/`);
-
