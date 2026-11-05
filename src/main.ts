@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./ui/postBlastFlags.css";
 import type { BoardState, Cell } from "./core/types";
 import { BIOMES, getBiome } from "./data/biomes";
 import { CHARACTERS, getCharacter } from "./data/characters";
@@ -23,6 +24,7 @@ import { RunManager } from "./run/runManager";
 import { validateOperationStart } from "./run/operationStartValidation";
 import { BoardView } from "./ui/boardView";
 import { HudView } from "./ui/hudView";
+import { BLAST_TIMING, PostBlastFlags } from "./ui/postBlastFlags";
 import { hydratePortraitFallbacks, renderPortraitMarkup } from "./ui/portraitView";
 import {
   formatBestResult,
@@ -71,12 +73,12 @@ let campaignActive = false;
 let campaignJustStarted = false;
 let confirmAction: (() => void) | null = null;
 const lastQuotes = new Map<string, string>();
-const BLAST_DEBRIEF_DELAY_MS = 4000;
+const postBlastFlags = new PostBlastFlags();
 
-const boardView = new BoardView(refs.boardWrap, refs.board, runManager, bus, {
+const boardView = new BoardView(refs.boardWrap, refs.board, runManager, bus, postBlastFlags, {
   onTacticalCell: (row, col) => handleTacticalCell(row, col)
 });
-const hudView = new HudView(refs, runManager, bus);
+const hudView = new HudView(refs, runManager, bus, postBlastFlags);
 
 refs.playerNameInput.value = playerIdentity.displayName;
 void updateContinueButton();
@@ -282,7 +284,8 @@ refs.sessionEndMenuButton.addEventListener("click", () => {
 });
 
 refs.profileBackButton.addEventListener("click", () => {
-  showScreen(refs, profileReturnScreen);
+  if (postBlastFlags.getStatistics()) boardView.render(runManager.getState());
+  showScreen(refs, profileReturnScreen === "debrief" && pendingDebriefTimer !== null ? "operation" : profileReturnScreen);
 });
 
 refs.confirmAccept.addEventListener("click", () => {
@@ -356,8 +359,8 @@ bus.on("RUN_LOST", ({ character, result }) => {
   pendingDebriefTimer = window.setTimeout(() => {
     pendingDebriefTimer = null;
     hudView.markDebriefVisible();
-    showScreen(refs, "debrief");
-  }, BLAST_DEBRIEF_DELAY_MS);
+    if (refs.game.dataset.view === "operation") showScreen(refs, "debrief");
+  }, BLAST_TIMING.debrief);
 });
 
 clearPageBiome();
@@ -711,8 +714,6 @@ function renderSelectedOperation(): void {
 function openProfile(characterId: string, returnScreen: AppScreen): void {
   profileReturnScreen = returnScreen;
   if (lastMissionResult) {
-    hudView.clearSceneState();
-    clearPendingDebrief();
     refs.debriefScreen.classList.add("is-hidden");
   }
   renderProfile(characterId);
@@ -1354,6 +1355,8 @@ function clearPendingDebrief(): void {
 }
 
 function clearOutcomeState(): void {
+  clearPendingDebrief();
+  boardView.clearAftermath();
   hudView.clearSceneState();
   refs.debriefScreen.classList.add("is-hidden");
   refs.debriefPanel.classList.remove("is-win", "is-loss");

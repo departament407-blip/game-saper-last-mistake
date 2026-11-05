@@ -13,6 +13,13 @@ export const LANGUAGES: Array<{ id: Language; label: string; flag: string }> = [
 
 const dictionaries: Record<Language, Record<string, string>> = {
   ru: {
+    "aftermath.correctFlags": "Правильно установлено флагов:",
+    "aftermath.wrongFlags": "Ошибочно установлено флагов:",
+    "aftermath.unflaggedMines": "Неотмеченных мин:",
+    "aftermath.correct-flag": "Правильный флаг: мина подтверждена, {row}, {col}",
+    "aftermath.wrong-flag": "Ошибочный флаг: мины не было, {row}, {col}",
+    "aftermath.unflagged-mine": "Неотмеченная мина, {row}, {col}",
+    "aftermath.epicenter": "Эпицентр: взорвавшаяся мина, {row}, {col}",
     "app.title": "САПЁР: ПОСЛЕДНЯЯ ОШИБКА",
     "main.eyebrow": "Терминал отбора",
     "main.subtitle": "Одна сетка. Один неверный вывод. Каждый подрыв режет запас HP и меняет состав кампании.",
@@ -154,6 +161,13 @@ const dictionaries: Record<Language, Record<string, string>> = {
     "biome.sea": "Море"
   },
   en: {
+    "aftermath.correctFlags": "Correctly placed flags:",
+    "aftermath.wrongFlags": "Incorrectly placed flags:",
+    "aftermath.unflaggedMines": "Unflagged mines:",
+    "aftermath.correct-flag": "Correct flag: mine confirmed, {row}, {col}",
+    "aftermath.wrong-flag": "Incorrect flag: no mine here, {row}, {col}",
+    "aftermath.unflagged-mine": "Unflagged mine, {row}, {col}",
+    "aftermath.epicenter": "Epicenter: detonated mine, {row}, {col}",
     "app.title": "MINESWEEPER: THE LAST MISTAKE",
     "main.eyebrow": "Selection terminal",
     "main.subtitle": "One grid. One bad read. Every blast cuts HP and changes the campaign roster.",
@@ -295,6 +309,13 @@ const dictionaries: Record<Language, Record<string, string>> = {
     "biome.sea": "Sea"
   },
   es: {
+    "aftermath.correctFlags": "Banderas correctas:",
+    "aftermath.wrongFlags": "Banderas incorrectas:",
+    "aftermath.unflaggedMines": "Minas sin marcar:",
+    "aftermath.correct-flag": "Bandera correcta: mina confirmada, {row}, {col}",
+    "aftermath.wrong-flag": "Bandera incorrecta: no había mina, {row}, {col}",
+    "aftermath.unflagged-mine": "Mina sin marcar, {row}, {col}",
+    "aftermath.epicenter": "Epicentro: mina detonada, {row}, {col}",
     "app.title": "BUSCAMINAS: EL ÚLTIMO ERROR",
     "main.eyebrow": "Terminal de selección",
     "main.subtitle": "Una cuadrícula. Una mala lectura. Cada explosión corta HP y cambia la campaña.",

@@ -12,17 +12,20 @@ import type { MissionResult } from "../progression/campaignTypes";
 import type { RunManager } from "../run/runManager";
 import { mountPortrait } from "./portraitView";
 import type { AppRefs } from "./screens";
+import { BLAST_TIMING, type PostBlastFlags } from "./postBlastFlags";
 
 export class HudView {
   private timerId: number | null = null;
   private aftermathTimerId: number | null = null;
   private assetAvailability = new Map<string, Promise<boolean>>();
   private currentBiome: Biome | null = null;
+  private sceneRevision = 0;
 
   constructor(
     private readonly refs: AppRefs,
     private readonly runManager: RunManager,
-    bus: EventBus<GameEventMap>
+    bus: EventBus<GameEventMap>,
+    private readonly postBlastFlags: PostBlastFlags
   ) {
     bus.on("GAME_STARTED", ({ state, operation, biome, character }) => {
       this.currentBiome = biome;
@@ -80,7 +83,10 @@ export class HudView {
   }
 
   clearSceneState(): void {
+    this.sceneRevision += 1;
     this.clearAftermathTimer();
+    this.refs.debriefFlags.replaceChildren();
+    this.refs.debriefFlags.classList.add("is-hidden");
     this.refs.operationScreen.classList.remove(
       "is-blasted",
       "is-exploding",
@@ -109,6 +115,7 @@ export class HudView {
   }
 
   private async setOperationBackdrop(biome: Biome, destroyed: boolean): Promise<void> {
+    const revision = ++this.sceneRevision;
     if (!destroyed) {
       this.applyOperationBackdrop(biome.backgroundAsset);
       this.refs.operationScreen.classList.remove("is-destroyed-fallback");
@@ -117,6 +124,7 @@ export class HudView {
 
     this.applyOperationBackdrop(biome.destroyedBackgroundAsset);
     const destroyedAsset = await this.resolveDestroyedBackground(biome);
+    if (revision !== this.sceneRevision) return;
     this.refs.operationScreen.classList.toggle("is-destroyed-fallback", destroyedAsset === null);
 
     if (!destroyedAsset) {
@@ -199,7 +207,7 @@ export class HudView {
       this.aftermathTimerId = null;
       this.refs.operationScreen.classList.remove("is-exploding");
       this.refs.operationScreen.classList.add("is-burning-aftermath");
-    }, 1200);
+    }, BLAST_TIMING.ignition);
   }
 
   private clearAftermathTimer(): void {
@@ -240,6 +248,13 @@ export class HudView {
         ? t("debrief.survivedTitle")
         : t("debrief.lossTitle");
     this.refs.debriefDetails.textContent = detailParts.join(" | ");
+    const statistics = tone === "loss" ? this.postBlastFlags.getStatistics() : null;
+    this.refs.debriefFlags.classList.toggle("is-hidden", !statistics);
+    this.refs.debriefFlags.innerHTML = statistics ? `
+      <div><dt>${t("aftermath.correctFlags")}</dt><dd>${statistics.correctFlags}</dd></div>
+      <div><dt>${t("aftermath.wrongFlags")}</dt><dd>${statistics.wrongFlags}</dd></div>
+      <div><dt>${t("aftermath.unflaggedMines")}</dt><dd>${statistics.unflaggedMines}</dd></div>
+    ` : "";
     this.refs.debriefXp.textContent = `+${result.xpAwarded} XP`;
     this.refs.debriefRank.textContent = rankChanged
       ? `${result.previousRank.label} → ${result.currentRank.label}`

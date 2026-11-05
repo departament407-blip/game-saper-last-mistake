@@ -9,6 +9,7 @@
     "start": "node scripts/start-server.mjs",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:browser": "node scripts/test-post-blast-flags.mjs",
     "test:watch": "vitest"
   },
   "engines": {
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
+    "playwright": "^1.62.1",
     "typescript": "^5.9.0",
     "vite": "^7.0.0",
     "vitest": "^4.0.0"

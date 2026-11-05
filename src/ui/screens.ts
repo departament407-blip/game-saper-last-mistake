@@ -90,6 +90,7 @@ export interface AppRefs {
   debriefPanel: HTMLElement;
   debriefTitle: HTMLElement;
   debriefDetails: HTMLElement;
+  debriefFlags: HTMLElement;
   debriefXp: HTMLElement;
   debriefRank: HTMLElement;
   debriefAwards: HTMLElement;
@@ -313,6 +314,7 @@ export function createApp(root: HTMLElement): AppRefs {
           <p class="eyebrow">${t("debrief.eyebrow")}</p>
           <h2 data-role="debrief-title">${t("debrief.title")}</h2>
           <p data-role="debrief-details"></p>
+          <dl class="debrief-flags is-hidden" data-role="debrief-flags"></dl>
           <div class="debrief-stats">
             <div>
               <span class="hud-label">${t("debrief.xp")}</span>
@@ -470,6 +472,7 @@ export function createApp(root: HTMLElement): AppRefs {
     debriefPanel: query(root, "[data-role='debrief-panel']"),
     debriefTitle: query(root, "[data-role='debrief-title']"),
     debriefDetails: query(root, "[data-role='debrief-details']"),
+    debriefFlags: query(root, "[data-role='debrief-flags']"),
     debriefXp: query(root, "[data-role='debrief-xp']"),
     debriefRank: query(root, "[data-role='debrief-rank']"),
     debriefAwards: query(root, "[data-role='debrief-awards']"),
