@@ -28,6 +28,19 @@ http://127.0.0.1:5173/
 npm test
 ```
 
+Послевзрывная проверка флагов: [архитектура и сценарии](docs/VFX_DESIGN.md).
+Для браузерных проверок desktop/mobile сначала запустите `npm run dev`, затем:
+
+```bash
+npx playwright install chromium
+npm run test:browser
+npm run test:input
+npm run test:medals
+npm run test:mechanics
+```
+
+Снимки флагов сохраняются в `.vite/flag-browser/`, медалей — `.vite/medal-gallery/`, фазы огня и видео — `.vite/mechanics-fire/`. Для другого адреса сервера задайте `TEST_BASE_URL`. Полный отчёт: [механики и визуальные проверки](docs/IMPLEMENTATION_REVIEW.md), [баланс](docs/BALANCE_REPORT.md), [медали](docs/ASSET_MANIFEST.md).
+
 ## Production build
 
 ```bash

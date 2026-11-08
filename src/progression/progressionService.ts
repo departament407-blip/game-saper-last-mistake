@@ -5,6 +5,7 @@ import { getCharacterPerks } from "../data/perks";
 import { getHpBonusByXp, getPerkTierByXp, getRankUpHealAmount } from "../data/rankBenefits";
 import { getNextRank, getRankById, getRankByXp } from "../data/ranks";
 import type { CampaignMode, MissionContext, MissionResult, OperativeSessionProfile } from "./campaignTypes";
+import { calculateFlagDiscipline } from "./xpRewardCalculator";
 
 const SERGEI_SURVIVAL_PREFIX = "sergei-cycle-survival";
 const SERGEI_PENDING_XP_KEY = "sergei-next-success-xp";
@@ -17,6 +18,9 @@ export function resolveMissionProgress(
   sessionEnded: boolean
 ): MissionResult {
   const previousRank = getRankById(previous.rankId);
+  const discipline = context.outcome === "won" && previous.id === "sych" && previous.unlockedPerkIds.includes("sych-flag-discipline")
+    ? calculateFlagDiscipline(context.operation, context.manualFlagPlacements, getPerkTierByXp(previous.xp))
+    : null;
   const directPerks = context.outcome === "won"
     ? getDirectWinPerkBonus(previous, context, campaignMode)
     : { bonus: 0, events: [] };
@@ -36,6 +40,8 @@ export function resolveMissionProgress(
 
   return {
     outcome: context.outcome,
+    manualFlagPlacements: context.manualFlagPlacements,
+    automaticFlagPlacements: context.automaticFlagPlacements ?? 0,
     elapsedSeconds: context.elapsedSeconds,
     xpAwarded,
     previousRank,
@@ -49,7 +55,11 @@ export function resolveMissionProgress(
     cycle: context.operation.cycle,
     sessionEnded,
     campaignCompleted: false,
-    perkEvents: unique([...(context.perkEvents ?? []), ...directPerks.events, ...built.events])
+    perkEvents: unique([...(context.perkEvents ?? []), ...directPerks.events, ...built.events]),
+    flagDiscipline: discipline ? {
+      ...discipline,
+      recipients: [{ characterId: previous.id, disciplineXp: discipline.bonusXpPerOperative, totalXp: xpAwarded }]
+    } : null
   };
 }
 
@@ -217,11 +227,11 @@ function getDirectWinPerkBonus(
   }
 
   if (previous.id === "sych" && previous.unlockedPerkIds.includes("sych-flag-discipline")) {
-    const discipline = getSychFlagDisciplineBonus(context, perkTier);
-    bonus += discipline.amount;
+    const discipline = calculateFlagDiscipline(context.operation, context.manualFlagPlacements, perkTier);
+    bonus += discipline.bonusXpPerOperative;
 
-    if (discipline.amount > 0) {
-      events.push(`Флажковая дисциплина: +${discipline.amount} XP за ${discipline.unusedFlags} неиспользованных флагов.`);
+    if (discipline.bonusXpPerOperative > 0) {
+      events.push(`Флажковая дисциплина: +${discipline.bonusXpPerOperative} XP за ${discipline.unusedFlagBudget} неиспользованных флагов (${discipline.manualFlagPlacements} ручных постановок).`);
     }
   }
 
@@ -288,18 +298,6 @@ function tryIskraSoloRevive(
     event: succeeded
       ? `Реанимационный шанс: Искра пережила смертельный подрыв с 1 HP. Операция провалена, XP не начислен.`
       : `Реанимационный шанс: попытка была, но шанс ${Math.round(chance * 100)}% не сработал.`
-  };
-}
-
-function getSychFlagDisciplineBonus(context: MissionContext, perkTier: number): { amount: number; unusedFlags: number } {
-  const unusedFlags = Math.max(0, context.operation.mines - context.flagsPlaced);
-  const percentPerFlag = [0.02, 0.04, 0.06][perkTier - 1] ?? 0.02;
-  const maxPercent = [0.2, 0.4, 0.6][perkTier - 1] ?? 0.2;
-  const multiplier = Math.min(maxPercent, unusedFlags * percentPerFlag);
-
-  return {
-    amount: Math.round(context.operation.xpWin * multiplier),
-    unusedFlags
   };
 }
 

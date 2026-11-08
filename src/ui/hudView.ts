@@ -1,7 +1,6 @@
 import { ACHIEVEMENTS } from "../data/achievements";
 import type { Biome } from "../data/biomes";
-import type { Character } from "../data/characters";
-import { MEDALS } from "../data/medals";
+import { getCharacter, type Character } from "../data/characters";
 import { getPerk, getPerkDescription } from "../data/perks";
 import { getPerkTierByXp } from "../data/rankBenefits";
 import type { ClassicOperation } from "../data/operations";
@@ -12,18 +11,39 @@ import type { MissionResult } from "../progression/campaignTypes";
 import type { RunManager } from "../run/runManager";
 import { mountPortrait } from "./portraitView";
 import type { AppRefs } from "./screens";
+import { BLAST_TIMING, type PostBlastFlags } from "./postBlastFlags";
+import { ExplosionVFX } from "./explosionVfx";
+import { renderMedalAward } from "./medalRenderer";
 
 export class HudView {
   private timerId: number | null = null;
   private aftermathTimerId: number | null = null;
   private assetAvailability = new Map<string, Promise<boolean>>();
   private currentBiome: Biome | null = null;
+  private sceneRevision = 0;
+  private readonly explosion: ExplosionVFX;
 
   constructor(
     private readonly refs: AppRefs,
     private readonly runManager: RunManager,
-    bus: EventBus<GameEventMap>
+    bus: EventBus<GameEventMap>,
+    private readonly postBlastFlags: PostBlastFlags
   ) {
+    this.explosion = new ExplosionVFX(refs.operationScreen);
+    bus.on("MINE_TRIGGERED", ({ explodedCell, biome, state, protected: protectedHit }) => {
+      this.setBlastOrigin(explodedCell.row, explodedCell.col, state.rows, state.cols);
+      void this.setOperationBackdrop(biome, true);
+      this.refs.operationScreen.classList.add("is-blasted", "is-exploding", "is-death-sequence", "is-destroyed");
+      this.queueAftermathState();
+      this.explosion.start(explodedCell.id, biome.id, protectedHit);
+      if (protectedHit) this.setMessage("Щит поглотил подрыв. Операция продолжится после взрыва.");
+      this.render(state);
+    });
+    bus.on("BLAST_RECOVERED", ({ state }) => {
+      this.clearSceneState();
+      this.setMessage("Щит израсходован. Продолжайте разминирование; обнаруженная мина безопасна для повторного нажатия.");
+      this.render(state);
+    });
     bus.on("GAME_STARTED", ({ state, operation, biome, character }) => {
       this.currentBiome = biome;
       this.clearSceneState();
@@ -57,14 +77,10 @@ export class HudView {
       this.showDebrief("win", operation, biome, character, result);
     });
 
-    bus.on("RUN_LOST", ({ state, explodedCell, operation, biome, character, result }) => {
+    bus.on("RUN_LOST", ({ state, operation, biome, character, result }) => {
       const survived = result.profile.status === "active";
 
       this.setMessage(survived ? t("hud.survivedMessage") : t("hud.lossMessage"));
-      this.setBlastOrigin(explodedCell.row, explodedCell.col, state.rows, state.cols);
-      void this.setOperationBackdrop(biome, true);
-      this.refs.operationScreen.classList.add("is-blasted", "is-exploding", "is-death-sequence", "is-destroyed");
-      this.queueAftermathState();
       mountPortrait(this.refs.portrait, character, survived ? "active" : "fallen");
       this.stopTimer();
       this.render(state);
@@ -80,7 +96,13 @@ export class HudView {
   }
 
   clearSceneState(): void {
+    this.explosion.stop();
+    this.sceneRevision += 1;
     this.clearAftermathTimer();
+    this.refs.debriefFlags.replaceChildren();
+    this.refs.debriefFlags.classList.add("is-hidden");
+    this.refs.debriefDiscipline.replaceChildren();
+    this.refs.debriefDiscipline.classList.add("is-hidden");
     this.refs.operationScreen.classList.remove(
       "is-blasted",
       "is-exploding",
@@ -109,6 +131,7 @@ export class HudView {
   }
 
   private async setOperationBackdrop(biome: Biome, destroyed: boolean): Promise<void> {
+    const revision = ++this.sceneRevision;
     if (!destroyed) {
       this.applyOperationBackdrop(biome.backgroundAsset);
       this.refs.operationScreen.classList.remove("is-destroyed-fallback");
@@ -117,6 +140,7 @@ export class HudView {
 
     this.applyOperationBackdrop(biome.destroyedBackgroundAsset);
     const destroyedAsset = await this.resolveDestroyedBackground(biome);
+    if (revision !== this.sceneRevision) return;
     this.refs.operationScreen.classList.toggle("is-destroyed-fallback", destroyedAsset === null);
 
     if (!destroyedAsset) {
@@ -199,7 +223,7 @@ export class HudView {
       this.aftermathTimerId = null;
       this.refs.operationScreen.classList.remove("is-exploding");
       this.refs.operationScreen.classList.add("is-burning-aftermath");
-    }, 1200);
+    }, BLAST_TIMING.ignition);
   }
 
   private clearAftermathTimer(): void {
@@ -228,7 +252,7 @@ export class HudView {
       `${t("common.hp")}: ${result.profile.hp}/${result.profile.maxHp}`
     ];
 
-    if (survivedLoss) {
+    if (survivedLoss && result.perkEvents.some(event => event.startsWith("Запас плавучести:") || event.startsWith("Реанимационный шанс:"))) {
       detailParts.push(t("debrief.savedByPerk"));
     }
 
@@ -240,6 +264,22 @@ export class HudView {
         ? t("debrief.survivedTitle")
         : t("debrief.lossTitle");
     this.refs.debriefDetails.textContent = detailParts.join(" | ");
+    this.refs.debriefDetails.textContent += ` | Ручных постановок: ${result.manualFlagPlacements} | Автофлагов: ${result.automaticFlagPlacements}`;
+    const discipline = result.flagDiscipline;
+    this.refs.debriefDiscipline.classList.toggle("is-hidden", !discipline);
+    this.refs.debriefDiscipline.innerHTML = discipline ? `
+      <strong>Флажковая дисциплина</strong>
+      <p>Мин: ${discipline.mineCount} · Ручных постановок: ${discipline.manualFlagPlacements}</p>
+      <p>Неиспользованный бюджет: ${discipline.unusedFlagBudget} · Бонус каждому: +${discipline.bonusPercent}% (${discipline.bonusXpPerOperative} XP), максимум +60%</p>
+      <div class="discipline-recipients">${discipline.recipients.map(recipient => `<span>${getCharacter(recipient.characterId).name}: +${recipient.totalXp} XP <small>(дисциплина +${recipient.disciplineXp})</small></span>`).join("")}</div>
+    ` : "";
+    const statistics = tone === "loss" ? this.postBlastFlags.getStatistics() : null;
+    this.refs.debriefFlags.classList.toggle("is-hidden", !statistics);
+    this.refs.debriefFlags.innerHTML = statistics ? `
+      <div><dt>${t("aftermath.correctFlags")}</dt><dd>${statistics.correctFlags}</dd></div>
+      <div><dt>${t("aftermath.wrongFlags")}</dt><dd>${statistics.wrongFlags}</dd></div>
+      <div><dt>${t("aftermath.unflaggedMines")}</dt><dd>${statistics.unflaggedMines}</dd></div>
+    ` : "";
     this.refs.debriefXp.textContent = `+${result.xpAwarded} XP`;
     this.refs.debriefRank.textContent = rankChanged
       ? `${result.previousRank.label} → ${result.currentRank.label}`
@@ -291,10 +331,7 @@ function renderAwards(result: MissionResult): string {
     return item ? `<span class="award-pill"><b><span>${item.icon}</span>${item.label}</b><small>${item.description}</small></span>` : "";
   });
 
-  const medalItems = result.newMedalIds.map((id) => {
-    const item = MEDALS.find((medal) => medal.id === id);
-    return item ? `<span class="award-pill medal"><b><img class="award-icon" alt="" src="${item.assetPath}" onerror="this.hidden=true"><span>${item.icon}</span>${item.label}</b><small>${item.description}</small></span>` : "";
-  });
+  const medalItems = result.newMedalIds.map(id => renderMedalAward(id));
 
   const perkItems = result.newPerkIds.map((id) => {
     const item = getPerk(id);

@@ -5,6 +5,18 @@ import type { ClassicOperation } from "../data/operations";
 import type { MissionResult } from "../progression/campaignTypes";
 
 export interface GameEventMap {
+  MINE_TRIGGERED: {
+    state: BoardState;
+    explodedCell: Cell;
+    protected: boolean;
+    runId: string;
+    operation: ClassicOperation;
+    biome: Biome;
+    character: Character;
+  };
+  ARMOR_ABSORBED: { state: BoardState; runId: string; character: Character };
+  BLAST_RECOVERED: { state: BoardState; runId: string };
+  ACTIVE_PERK_USED: { perkId: string; flagsPlaced: number; charges: number; cellIds: string[] };
   GAME_STARTED: {
     state: BoardState;
     operation: ClassicOperation;

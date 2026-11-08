@@ -87,9 +87,9 @@ export class MinesweeperCore {
 
     if (cell.hasMine) {
       cell.state = "revealed";
-      this.status = "lost";
+      this.status = "detonating";
       this.explodedCellId = cell.id;
-      return this.revealResult("lost", [{ ...cell }], { ...cell });
+      return this.revealResult("mine_triggered", [{ ...cell }], { ...cell });
     }
 
     const revealedCells = this.floodReveal(cell);
@@ -105,7 +105,7 @@ export class MinesweeperCore {
   toggleFlag(row: number, col: number): FlagResult {
     const cell = this.cellAt(row, col);
 
-    if (!cell || this.status === "won" || this.status === "lost" || cell.state === "revealed" || cell.state === "blocked") {
+    if (!cell || this.status === "won" || this.status === "lost" || this.status === "detonating" || cell.state === "revealed" || cell.state === "blocked") {
       return {
         kind: "ignored",
         cell: cell ? { ...cell } : null,
@@ -136,12 +136,12 @@ export class MinesweeperCore {
   chordReveal(row: number, col: number): ChordResult {
     const sourceCell = this.cellAt(row, col);
 
-    if (!sourceCell || this.status !== "playing" || sourceCell.state !== "revealed" || sourceCell.adjacentMines === 0) {
+    if (!sourceCell || this.status !== "playing" || sourceCell.state !== "revealed" || sourceCell.hasMine || sourceCell.adjacentMines === 0) {
       return this.chordResult("ignored", sourceCell, [], null);
     }
 
     const neighbors = this.neighbors(sourceCell);
-    const flagCount = neighbors.filter((cell) => cell.state === "flagged").length;
+    const flagCount = neighbors.filter((cell) => cell.state === "flagged" || (cell.state === "revealed" && cell.hasMine)).length;
 
     if (flagCount !== sourceCell.adjacentMines) {
       return this.chordResult("chord_failed", sourceCell, [], null);
@@ -153,9 +153,9 @@ export class MinesweeperCore {
     for (const target of targets) {
       if (target.hasMine) {
         target.state = "revealed";
-        this.status = "lost";
+        this.status = "detonating";
         this.explodedCellId = target.id;
-        return this.chordResult("lost", sourceCell, revealedCells, target);
+        return this.chordResult("mine_triggered", sourceCell, revealedCells, target);
       }
 
       revealedCells.push(...this.floodReveal(target));
@@ -167,6 +167,12 @@ export class MinesweeperCore {
     }
 
     return this.chordResult("chord_succeeded", sourceCell, revealedCells, null);
+  }
+
+  /** Resolves a pending hit without regenerating mines or rolling back any move. */
+  resolveMineHit(survived: boolean): BoardState {
+    if (this.status === "detonating") this.status = survived ? "playing" : "lost";
+    return this.getState();
   }
 
   private createEmptyCells(): Cell[] {
@@ -210,6 +216,7 @@ export class MinesweeperCore {
     return (
       this.status !== "won" &&
       this.status !== "lost" &&
+      this.status !== "detonating" &&
       cell.state !== "revealed" &&
       cell.state !== "flagged" &&
       cell.state !== "blocked"

@@ -1,0 +1,23 @@
+.explosion-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 7; pointer-events: none; }
+.operation-screen.is-blasted:not(.is-exploding) { animation: none; }
+.operation-screen.is-burning-aftermath .cell.is-revealed:not(.is-mine):not(.is-local-crater) {
+  color: #51291b;
+  text-shadow: 0 -1px 2px #ff9e3c, 0 1px 2px #130d09;
+}
+.armor-indicator { display: flex; gap: 8px; align-items: center; padding: 6px 8px; margin-top: 7px; font-size: .85rem; border: 1px solid #49799c; border-radius: 6px; background: #e0f2ff; color: #16425e; }
+.armor-indicator svg { width: 25px; height: 28px; flex: 0 0 auto; }
+.armor-indicator.is-spent { background: #e8e6e2; border-color: #827c74; color: #514f4a; }
+.armor-indicator.is-spent svg { opacity: .5; }
+.intuition-panel { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px; border: 1px solid #ba8b41; border-radius: 8px; background: #fff4d8; color: #3b3024; }
+.intuition-panel p { margin: 0; font-size: .85rem; }
+.discipline-report { border: 1px solid #8b9d77; border-radius: 8px; background: #f4f8eb; padding: 12px; margin-top: 12px; color: #273021; }
+.discipline-report p { margin: 4px 0; font-size: .9rem; }
+.discipline-recipients { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 6px; margin-top: 8px; }
+.discipline-recipients span { padding: 6px; border-radius: 5px; background: #e0e9d5; }
+.cell.is-auto-flagged .flag-mark { animation: intuitionFlagPlant 460ms ease-out both; }
+@keyframes intuitionFlagPlant { 0% { transform: translateY(-16px) rotate(-14deg); opacity: .2; } 65% { transform: translateY(2px) rotate(5deg); opacity: 1; } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cell.is-auto-flagged .flag-mark { animation: none; }
+  .operation-screen.is-exploding .board-wrap::after,
+  .operation-screen.is-exploding .board::before { display: none; }
+}

@@ -6,10 +6,11 @@ import {
 } from "../campaign/operationGenerator";
 import { CHARACTERS, getCharacter, getCharacterBaseHp } from "../data/characters";
 import { FALLBACK_OPERATION } from "../data/operations";
+import { DOPING, getCharacterPerks } from "../data/perks";
 import type { ClassicOperation } from "../data/operations";
 import { getHpBonusByXp, getRankUpHealAmount } from "../data/rankBenefits";
 import { RANKS, getRankByXp } from "../data/ranks";
-import type { CampaignMode, CampaignSessionState, OperativeSessionProfile } from "./campaignTypes";
+import type { CampaignMode, CampaignSessionState, FlagDisciplineReward, MissionResult, OperativeSessionProfile } from "./campaignTypes";
 
 export const CAMPAIGN_RULESETS = {
   squad: {
@@ -28,13 +29,17 @@ export const CAMPAIGN_RULESETS = {
 
 export class CampaignSessionStore {
   private state = createFreshSession("squad", "local-preview-player", "Игрок");
+  // Transient receipt ledger; run IDs are not part of the persisted campaign schema.
+  private readonly disciplineReceipts = new Map<string, FlagDisciplineReward>();
 
   startSession(mode: CampaignMode, playerId: string, playerName: string): CampaignSessionState {
+    this.disciplineReceipts.clear();
     this.state = createFreshSession(mode, playerId, playerName);
     return this.getState();
   }
 
   restoreSession(session: CampaignSessionState): CampaignSessionState {
+    this.disciplineReceipts.clear();
     this.state = normalizeSession(session);
     return this.getState();
   }
@@ -57,6 +62,28 @@ export class CampaignSessionStore {
 
   getCycle(): number {
     return this.state.cycle;
+  }
+
+  getDopingStatus(): { unlocked: boolean; charges: number } {
+    const rom = this.getVisibleProfiles().find(profile => profile.id === "rom");
+    // Rom's existing receipts survive saves, death/revival and cycle changes.
+    const used = rom?.usedPerkKeys.filter(key => key.startsWith(DOPING.receiptPrefix)).length ?? 0;
+    return {
+      unlocked: Boolean(rom && rom.status === "active" && rom.xp >= DOPING.minXp),
+      charges: Math.max(0, DOPING.usesPerCampaign - used)
+    };
+  }
+
+  useDoping(characterId: string): { healed: number; charges: number } | null {
+    const { unlocked, charges } = this.getDopingStatus();
+    const target = this.getSelectableProfiles().find(profile => profile.id === characterId);
+    if (!unlocked || charges === 0 || this.isSessionEnded() || !target || target.hp >= target.maxHp) return null;
+    const healed = Math.min(DOPING.healAmount, target.maxHp - target.hp);
+    this.updateProfile(characterId, profile => ({ ...profile, hp: profile.hp + healed }));
+    this.updateProfile("rom", profile => ({ ...profile,
+      usedPerkKeys: [...profile.usedPerkKeys, `${DOPING.receiptPrefix}${DOPING.usesPerCampaign - charges + 1}`]
+    }));
+    return { healed, charges: charges - 1 };
   }
 
   getOperationPool(): ClassicOperation[] {
@@ -181,6 +208,30 @@ export class CampaignSessionStore {
       }
     };
     return cloneProfile(next);
+  }
+
+  /** Acting Sych has already received his share through resolveMissionProgress. */
+  applySychDisciplineReward(runId: string, result: MissionResult): FlagDisciplineReward | null {
+    if (result.outcome !== "won" || result.profile.id !== "sych" || result.profile.status !== "active" || !result.flagDiscipline) {
+      return null;
+    }
+    const previousReceipt = this.disciplineReceipts.get(runId);
+    if (previousReceipt) return structuredClone(previousReceipt);
+
+    const reward = structuredClone(result.flagDiscipline);
+    if (this.state.mode === "squad") {
+      for (const recipient of this.getSelectableProfiles()) {
+        if (recipient.id === result.profile.id) continue;
+        if (reward.bonusXpPerOperative > 0) this.addXpToProfile(recipient.id, reward.bonusXpPerOperative);
+        reward.recipients.push({
+          characterId: recipient.id,
+          disciplineXp: reward.bonusXpPerOperative,
+          totalXp: reward.bonusXpPerOperative
+        });
+      }
+    }
+    this.disciplineReceipts.set(runId, structuredClone(reward));
+    return reward;
   }
 
   applySupportPerks(sourceCharacterId: string, xpAwarded: number, perkTier: number): string[] {
@@ -355,7 +406,11 @@ export class CampaignSessionStore {
         ...profile,
         xp: nextXp,
         maxHp: nextMaxHp,
-        hp: Math.min(nextMaxHp, profile.hp + healAmount)
+        hp: Math.min(nextMaxHp, profile.hp + healAmount),
+        unlockedPerkIds: unique([
+          ...profile.unlockedPerkIds,
+          ...getCharacterPerks(profile.id).filter((perk) => nextXp >= perk.unlockMinXp).map((perk) => perk.id)
+        ])
       };
     });
   }
@@ -433,7 +488,7 @@ function normalizeProfile(profile: OperativeSessionProfile): OperativeSessionPro
     bestResultsByOperation: profile.bestResultsByOperation ?? {},
     unlockedAchievementIds: unique(profile.unlockedAchievementIds ?? []),
     unlockedMedalIds: unique(profile.unlockedMedalIds ?? []),
-    unlockedPerkIds: unique(profile.unlockedPerkIds ?? []),
+    unlockedPerkIds: unique([...(profile.unlockedPerkIds ?? []), ...(profile.id === "rom" && xp >= DOPING.minXp ? [DOPING.id] : [])]),
     currentWinStreak: Math.max(0, Number(profile.currentWinStreak) || 0),
     bestWinStreak: Math.max(0, Number(profile.bestWinStreak) || 0),
     wonBiomeIds: unique(profile.wonBiomeIds ?? []),

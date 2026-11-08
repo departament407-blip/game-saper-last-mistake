@@ -1,4 +1,8 @@
 import "./styles.css";
+import "./ui/postBlastFlags.css";
+import "./ui/explosionVfx.css";
+import "./ui/medalRenderer.css";
+import "./ui/doping.css";
 import type { BoardState, Cell } from "./core/types";
 import { BIOMES, getBiome } from "./data/biomes";
 import { CHARACTERS, getCharacter } from "./data/characters";
@@ -23,6 +27,7 @@ import { RunManager } from "./run/runManager";
 import { validateOperationStart } from "./run/operationStartValidation";
 import { BoardView } from "./ui/boardView";
 import { HudView } from "./ui/hudView";
+import { BLAST_TIMING, PostBlastFlags } from "./ui/postBlastFlags";
 import { hydratePortraitFallbacks, renderPortraitMarkup } from "./ui/portraitView";
 import {
   formatBestResult,
@@ -71,12 +76,12 @@ let campaignActive = false;
 let campaignJustStarted = false;
 let confirmAction: (() => void) | null = null;
 const lastQuotes = new Map<string, string>();
-const BLAST_DEBRIEF_DELAY_MS = 4000;
+const postBlastFlags = new PostBlastFlags();
 
-const boardView = new BoardView(refs.boardWrap, refs.board, runManager, bus, {
+const boardView = new BoardView(refs.boardWrap, refs.board, runManager, bus, postBlastFlags, {
   onTacticalCell: (row, col) => handleTacticalCell(row, col)
 });
-const hudView = new HudView(refs, runManager, bus);
+const hudView = new HudView(refs, runManager, bus, postBlastFlags);
 
 refs.playerNameInput.value = playerIdentity.displayName;
 void updateContinueButton();
@@ -201,6 +206,17 @@ refs.characterSelect.addEventListener("change", () => {
   renderOperativeBriefing();
 });
 
+refs.dopingTarget.addEventListener("change", () => renderDoping());
+refs.dopingButton.addEventListener("click", () => {
+  if (refs.preparationScreen.classList.contains("is-hidden")) return;
+  const targetId = refs.dopingTarget.value;
+  const result = campaignStore.useDoping(targetId);
+  if (!result) { renderDoping(); return; }
+  renderOperativeSelect();
+  refs.dopingResult.textContent = `${getCharacter(targetId).name}: восстановлено ${result.healed} HP. Осталось применений: ${result.charges}.`;
+  void persistCampaign();
+});
+
 refs.preparationScreen.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const startButton = target?.closest("[data-role='start-operation']");
@@ -222,6 +238,7 @@ refs.flagModeButton.addEventListener("click", () => {
 });
 
 refs.tacticalButton.addEventListener("click", () => {
+  if (runManager.isInputLocked()) return;
   const state = runManager.getState();
   const character = runManager.getCharacter();
 
@@ -282,7 +299,8 @@ refs.sessionEndMenuButton.addEventListener("click", () => {
 });
 
 refs.profileBackButton.addEventListener("click", () => {
-  showScreen(refs, profileReturnScreen);
+  if (postBlastFlags.getStatistics()) boardView.render(runManager.getState());
+  showScreen(refs, profileReturnScreen === "debrief" && pendingDebriefTimer !== null ? "operation" : profileReturnScreen);
 });
 
 refs.confirmAccept.addEventListener("click", () => {
@@ -324,6 +342,16 @@ bus.on("FIRST_MOVE_COMPLETED", ({ character }) => {
   setCharacterQuote(character.id, "firstClick");
 });
 
+refs.intuitionButton.addEventListener("click", () => {
+  const count = runManager.activateWildIntuition();
+  updateActivePerkHud();
+  refs.intuitionHint.textContent = count ? `Установлено правильных флагов: ${count}.` : "Нет доступных неотмеченных мин. Заряд сохранён.";
+});
+bus.on("CELL_REVEALED", () => updateActivePerkHud());
+bus.on("ARMOR_ABSORBED", ({ character }) => renderOperationSidePanel(character.id));
+bus.on("MINE_TRIGGERED", () => updateActivePerkHud());
+bus.on("BLAST_RECOVERED", () => updateActivePerkHud());
+
 bus.on("PERK_USED", ({ character }) => {
   setCharacterQuote(character.id, "perkUsed");
 });
@@ -356,8 +384,8 @@ bus.on("RUN_LOST", ({ character, result }) => {
   pendingDebriefTimer = window.setTimeout(() => {
     pendingDebriefTimer = null;
     hudView.markDebriefVisible();
-    showScreen(refs, "debrief");
-  }, BLAST_DEBRIEF_DELAY_MS);
+    if (refs.game.dataset.view === "operation") showScreen(refs, "debrief");
+  }, BLAST_TIMING.debrief);
 });
 
 clearPageBiome();
@@ -563,7 +591,32 @@ function renderOperativeSelect(preferredId?: string): void {
   );
   refs.prepProfileButton.disabled = !getSelectedPreparationCharacterId();
   refs.squadStatus.textContent = getRosterStatusText();
+  renderDoping();
   renderOperativeBriefing();
+}
+
+function renderDoping(): void {
+  const { unlocked, charges } = campaignStore.getDopingStatus();
+  refs.dopingPanel.classList.toggle("is-hidden", !unlocked);
+  refs.dopingResult.textContent = "";
+  if (!unlocked) return;
+  const profiles = campaignStore.getSelectableProfiles();
+  const currentTarget = refs.dopingTarget.value;
+  const wounded = profiles.filter(profile => profile.hp < profile.maxHp);
+  refs.dopingTarget.replaceChildren(...profiles.map(profile => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = `${getCharacter(profile.id).name} · ${profile.hp}/${profile.maxHp} HP`;
+    option.disabled = profile.hp >= profile.maxHp;
+    return option;
+  }));
+  refs.dopingTarget.value = wounded.some(profile => profile.id === currentTarget) ? currentTarget : wounded[0]?.id ?? "";
+  refs.dopingCharges.textContent = `${charges}/2 применения`;
+  refs.dopingButton.disabled = charges === 0 || wounded.length === 0 || campaignStore.isSessionEnded();
+  refs.dopingTarget.disabled = refs.dopingButton.disabled;
+  const target = wounded.find(profile => profile.id === refs.dopingTarget.value);
+  refs.dopingButton.textContent = target ? `Восстановить ${Math.min(3, target.maxHp - target.hp)} HP` : "Нет раненых бойцов";
+  if (charges === 0) refs.dopingResult.textContent = "Оба применения израсходованы до конца кампании.";
 }
 
 function renderPreparationRoster(visibleProfiles: OperativeSessionProfile[], selectedId: string): void {
@@ -711,8 +764,6 @@ function renderSelectedOperation(): void {
 function openProfile(characterId: string, returnScreen: AppScreen): void {
   profileReturnScreen = returnScreen;
   if (lastMissionResult) {
-    hudView.clearSceneState();
-    clearPendingDebrief();
     refs.debriefScreen.classList.add("is-hidden");
   }
   renderProfile(characterId);
@@ -1122,11 +1173,10 @@ function renderOperationSidePanel(characterId: string, profileOverride?: Operati
   refs.operativeHpText.textContent = `${profile.hp}/${profile.maxHp}`;
   refs.operativeStatus.textContent = profile.status === "fallen" ? t("common.fallen") : t("common.active");
   refs.operativeStatus.className = `status-pill ${profile.status}`;
-  refs.operativeMedals.innerHTML = renderMedalStrip(profile.unlockedMedalIds, t("profile.empty"));
+  refs.operativeMedals.innerHTML = renderMedalStrip(profile.unlockedMedalIds, t("profile.empty"), lastMissionResult?.profile.id === characterId ? lastMissionResult.newMedalIds : []);
   const armor = getVisibleTemporaryArmor(characterId);
   refs.operativePerks.innerHTML = `
     <span class="award-pill rank"><b>Ступень перков ${perkTier}</b><small>Ниже показаны реальные эффекты текущей ступени.</small></span>
-    ${armor > 0 ? `<span class="award-pill perk"><b>Броня: ${armor}</b><small>Временная броня Сергея поглотит ${armor} HP урона в этой операции.</small></span>` : ""}
     ${renderPerkTags(profile, campaignStore.getMode(), t("prep.noPerks"))}
   `;
   const status: OperativeStatus = profile.status;
@@ -1137,6 +1187,22 @@ function renderOperationSidePanel(characterId: string, profileOverride?: Operati
   refs.portrait.setAttribute("aria-label", character.name);
   refs.portrait.innerHTML = renderPortraitMarkup(character, status);
   hydratePortraitFallbacks(refs.portrait);
+  refs.operativeArmor.classList.toggle("is-hidden", characterId !== "sergei" || !profile.unlockedPerkIds.includes("sergei-heavy-landing"));
+  refs.operativeArmor.classList.toggle("is-spent", armor === 0);
+  refs.operativeArmor.innerHTML = `<svg viewBox="0 0 28 32" aria-hidden="true"><path d="M14 2 26 7v10c0 6-8 11-12 13C10 28 2 23 2 17V7z" fill="currentColor"/><path d="m8 15 4 4 8-9" fill="none" stroke="#fff" stroke-width="3"/></svg><span>${armor ? "Щит заряжен · 1 защита" : "Щит израсходован · 0 защит"}</span>`;
+  updateActivePerkHud();
+}
+
+function updateActivePerkHud(): void {
+  if (!runManager.hasActiveGame()) return;
+  const state = runManager.getState();
+  const profile = campaignStore.getProfile(runManager.getCharacter().id);
+  const available = profile.id === "rom" && profile.unlockedPerkIds.includes("rom-wild-intuition");
+  const charge = runManager.getIntuitionCharges();
+  refs.intuitionPanel.classList.toggle("is-hidden", !available);
+  refs.intuitionButton.textContent = `Шальная интуиция — ${charge} заряд`;
+  refs.intuitionButton.disabled = !available || !charge || !state.firstMoveDone || state.status !== "playing" || runManager.isInputLocked();
+  refs.intuitionHint.textContent = !state.firstMoveDone ? "Сначала откройте поле." : charge ? `Отметить до ${getPerkTierByXp(profile.xp) + 1} мин.` : "Заряд израсходован.";
 }
 
 function getVisibleTemporaryArmor(characterId: string): number {
@@ -1183,6 +1249,7 @@ function getTacticalModeForCharacter(characterId: string): "lada-tools" | null {
 }
 
 function handleTacticalCell(row: number, col: number): void {
+  if (runManager.isInputLocked()) return;
   const state = runManager.getState();
 
   if (tacticalMode === "lada-tools") {
@@ -1201,7 +1268,7 @@ function handleTacticalCell(row: number, col: number): void {
     }
 
     const sector = getCellSector(state, row, col, perkTier >= 3 ? 4 : 3);
-    const mines = sector.filter((cell) => cell.hasMine).length;
+    const mines = runManager.countSectorMines(sector.map(cell => cell.id));
     tacticalScanCharge -= 1;
     tacticalMode = null;
     boardView.setTacticalMode(false);
@@ -1354,6 +1421,9 @@ function clearPendingDebrief(): void {
 }
 
 function clearOutcomeState(): void {
+  runManager.cancelPendingBlast();
+  clearPendingDebrief();
+  boardView.clearAftermath();
   hudView.clearSceneState();
   refs.debriefScreen.classList.add("is-hidden");
   refs.debriefPanel.classList.remove("is-win", "is-loss");

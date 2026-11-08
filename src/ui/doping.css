@@ -1,0 +1,7 @@
+.doping-panel { border: 1px solid #839772; border-radius: 10px; padding: 14px; background: #eff4e4; color: #253626; display: grid; gap: 10px; }
+.doping-panel__heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.doping-panel__heading span { border-radius: 6px; padding: 2px 7px; background: #d4e2c3; font-size: .85rem; }
+.doping-panel p { margin: 0; font-size: .85rem; line-height: 1.4; }
+.doping-panel .select { width: 100%; min-width: 0; }
+.doping-panel .button { min-height: 44px; }
+.doping-panel [role="status"]:empty { display: none; }

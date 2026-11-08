@@ -1,0 +1,70 @@
+.medal-strip { position: relative; gap: 4px; align-items: center; }
+.medal-badge { position: relative; color: #263530; }
+.medal-strip .medal-badge--compact { position: static; }
+.medal-strip .medal-badge--compact .medal-badge__trigger { position: static; }
+.medal-badge__trigger {
+  position: relative;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  -webkit-tap-highlight-color: transparent;
+}
+.medal-badge__trigger::-webkit-details-marker { display: none; }
+.medal-badge__trigger:focus-visible { outline: 2px solid #317b8a; outline-offset: 2px; }
+.medal-badge--compact .medal-badge__trigger { width: 44px; height: 52px; justify-content: center; }
+.medal-badge--compact .medal-badge__trigger:hover,
+.medal-badge[open] .medal-badge__trigger { background: #fff1bf88; border-color: #c6ad73; }
+.medal-art { position: relative; display: block; flex: 0 0 40px; width: 40px; height: 50px; }
+.medal-art__image, .medal-art__fallback { display: block; width: 100%; height: 100%; object-fit: contain; }
+.medal-art__fallback { display: none; }
+.medal-art__image[hidden] { display: none; }
+.medal-art.is-missing .medal-art__fallback { display: block; }
+.medal-badge__info {
+  display: none;
+  position: absolute;
+  z-index: 12;
+  bottom: calc(100% + 7px);
+  left: 0;
+  width: 240px;
+  max-width: calc(100vw - 32px);
+  min-width: 160px;
+  padding: 10px 12px;
+  border: 1px solid #c7b688;
+  border-radius: 9px;
+  background: #132820;
+  box-shadow: 0 8px 22px #0005;
+  color: #fff4d2;
+  font-size: .8rem;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.medal-badge__info strong, .medal-badge__info span { display: block; }
+.medal-strip .medal-badge__info { width: min(264px, 100%); }
+.medal-badge__info span { margin-top: 4px; color: #dae5d9; font-weight: 500; }
+.medal-badge[open] .medal-badge__info,
+.medal-badge__trigger:focus-visible .medal-badge__info { display: block; }
+@media (hover: hover) { .medal-badge:hover .medal-badge__info { display: block; } }
+.medal-badge--card { flex: 1 1 220px; max-width: 380px; }
+.medal-badge--card .medal-badge__trigger {
+  min-height: 78px;
+  padding: 8px 10px;
+  gap: 10px;
+  border-color: #c9bc94;
+  background: linear-gradient(135deg, #fff9e8, #eee4ce);
+}
+.medal-badge--card .medal-art { flex-basis: 48px; width: 48px; height: 60px; }
+.medal-badge__caption { display: grid; gap: 3px; min-width: 0; }
+.medal-badge__caption strong { font-size: .86rem; }
+.medal-badge__caption small { font-size: .75rem; line-height: 1.35; color: #4d5d52; font-weight: 500; }
+.medal-badge--gold .medal-badge__trigger { border-color: #bf923c; }
+.is-new-medal .medal-badge__trigger { box-shadow: 0 0 0 2px #e2b14966, 0 0 15px #ffd77966; }
+.medal-badge__new { position: absolute; top: 0; right: 0; color: #8d4c00; font-size: 14px; text-shadow: 0 0 4px #fff0b0; }
+.medal-strip--large .medal-badge__trigger { width: 58px; height: 68px; }
+.medal-strip--large .medal-art { flex-basis: 52px; width: 52px; height: 65px; }
+@media (max-width: 420px) {
+  .medal-badge--card { flex-basis: 100%; }
+  .medal-badge__info { min-width: 0; }
+}

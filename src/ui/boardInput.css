@@ -1,0 +1,12 @@
+.board { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.board .cell.is-pressed:not(.is-flagged):not(.is-revealed) {
+  background: var(--cell-open);
+  box-shadow: inset 0 2px 5px rgba(9, 20, 20, .45), inset 0 0 0 1px rgba(9, 20, 20, .3);
+  transform: translateY(1px);
+  filter: brightness(.86);
+}
+.board .cell.is-local-crater {
+  background: radial-gradient(circle, #683a24, #241e1a 55%, #4a4e47);
+  box-shadow: inset 0 0 0 2px #b57443, inset 0 0 8px #0d100f;
+}
+.board .cell.is-local-crater .mine-object { width: 74%; height: 74%; }

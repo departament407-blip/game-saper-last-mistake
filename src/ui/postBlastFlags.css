@@ -1,0 +1,142 @@
+/* Timings share BLAST_TIMING through BoardView's elapsed-time custom properties. */
+.flag-aftermath {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.operation-screen.is-death-sequence .board-wrap { filter: none; }
+
+/* Objects remain above scene smoke, but below the debrief (z-index: 10). */
+.operation-screen.is-burning-aftermath .operation-layout { z-index: auto; }
+.operation-screen.is-burning-aftermath .board-wrap { z-index: 5; }
+.operation-screen.is-burning-aftermath .board-wrap::after {
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: inherit;
+  transform: none;
+  box-shadow: none;
+  z-index: 0;
+}
+
+.operation-screen .cell.is-correct-flag {
+  border-color: #3a9563;
+  outline: 1px solid #d5ffe2;
+  outline-offset: -3px;
+  filter: none;
+  animation: none;
+}
+
+.flag-confirmed {
+  position: absolute;
+  width: 38%;
+  height: 38%;
+  bottom: 0;
+  right: 0;
+  animation: flagConfirmation 350ms ease-out var(--flag-ignition-delay, 900ms) both;
+}
+.flag-confirmed circle { fill: #185b38; stroke: #e6ffe9; stroke-width: 1.2; }
+.flag-confirmed path { fill: none; stroke: #edfff3; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+.operation-screen {
+  --flag-fire: #ff661f;
+  --flag-core: #fff2ac;
+  --flag-smoke: #3e382f;
+  --flag-flame-height: 1;
+}
+.operation-screen[data-biome="desert"] { --flag-fire: #ef9b35; --flag-smoke: #a28156; --flag-flame-height: .8; }
+.operation-screen[data-biome="sunflower"] { --flag-fire: #ffb02f; --flag-smoke: #504327; --flag-flame-height: 1.15; }
+.operation-screen[data-biome="factory"] { --flag-fire: #ff4b21; --flag-core: #fff7e2; --flag-smoke: #303338; }
+.operation-screen[data-biome="sea"] { --flag-fire: #ffa04c; --flag-core: #fff9dd; --flag-smoke: #b5dce4; --flag-flame-height: .75; }
+
+.operation-screen[data-biome] .cell.is-wrong-flag {
+  filter: none;
+  animation: wrongFlagTile 1600ms linear var(--flag-ignition-delay, 900ms) both;
+}
+.is-wrong-flag .flag-aftermath { z-index: 1; }
+.is-wrong-flag .flag-mark { filter: drop-shadow(0 1px 1px #fff0c2); }
+.is-wrong-flag .flag-mark__cloth { animation: flagClothBurn 1600ms linear var(--flag-ignition-delay, 900ms) both; }
+.is-wrong-flag .flag-mark__staff {
+  transform-origin: 9px 27px;
+  animation: flagStaffFall 1500ms ease-in-out var(--flag-settle-delay, 2500ms) both;
+}
+.is-wrong-flag .flag-mark__pole,
+.is-wrong-flag .flag-mark__base { animation: flagStaffChar 1600ms linear var(--flag-ignition-delay, 900ms) both; }
+.flag-flame {
+  fill: var(--flag-fire);
+  transform-origin: 18px 27px;
+  animation: flagFire 3100ms linear var(--flag-ignition-delay, 900ms) both;
+}
+.flag-flame--core { fill: var(--flag-core); }
+.flag-smoke { fill: var(--flag-smoke); animation: flagSmoke 3100ms linear var(--flag-ignition-delay, 900ms) both; }
+.flag-ash { fill: #ebc8a0; animation: flagAsh 1500ms ease-out var(--flag-settle-delay, 2500ms) both; }
+.flag-error {
+  position: absolute;
+  right: -2%;
+  top: -2%;
+  width: 62%;
+  height: 62%;
+  overflow: visible;
+  animation: flagErrorAppear 450ms ease-out var(--flag-settle-delay, 2500ms) both;
+  filter: drop-shadow(0 1px 1px #120d0a);
+}
+.flag-error path { fill: none; stroke: #ff292f; stroke-width: 3.4; stroke-linecap: round; }
+.flag-error .flag-error__outline { stroke: #fff4df; stroke-width: 6.6; }
+
+.mine-object { width: 84%; height: 84%; overflow: visible; position: relative; z-index: 1; pointer-events: none; }
+.mine-object__spikes { stroke: #ced9d8; stroke-width: 2.8; stroke-linecap: round; }
+.mine-object__body { fill: #333f42; stroke: #a3b0ac; stroke-width: 1.6; }
+.mine-object__shine { fill: none; stroke: #a9bab7; stroke-width: 2; stroke-linecap: round; }
+.mine-object__fuse { fill: #9f7160; stroke: #f4c090; stroke-width: 1; }
+.mine-object__rivet { fill: #d6dfd2; }
+.mine-object--exploded .mine-object__body { fill: #2e1814; stroke: #ffab55; }
+.mine-object--exploded .mine-object__fuse { fill: #fff2bb; }
+.mine-object__crack { fill: none; stroke: #ffb244; stroke-width: 2; stroke-linejoin: round; }
+.mine-object__blast { fill: none; stroke: #ffcd71; stroke-width: 1.3; stroke-dasharray: 3 2; }
+
+.debrief-flags { margin: 12px 0; padding: 10px 12px; border: 1px solid #ba9c8c; border-radius: 10px; background: #fff6ea; color: #302822; }
+.debrief-flags > div { display: flex; gap: 12px; justify-content: space-between; padding: 3px 0; }
+.debrief-flags dt { font-size: .9rem; }
+.debrief-flags dd { margin: 0; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+@keyframes flagConfirmation { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wrongFlagTile {
+  from { background-color: #ef9687; }
+  to { background: #463b34; border-color: #f2b7a3; box-shadow: inset 0 0 5px #1b1613; }
+}
+@keyframes flagClothBurn {
+  0% { fill: #e32128; stroke: #fff4e8; clip-path: polygon(0 0,100% 0,100% 100%,0 100%); }
+  35% { fill: #a72c19; stroke: #ff9d37; clip-path: polygon(0 0,100% 0,85% 100%,0 100%); }
+  70% { fill: #58291f; stroke: #d57638; clip-path: polygon(0 0,85% 0,65% 100%,0 100%); }
+  100% { fill: #61463c; stroke: #c49474; clip-path: polygon(0 0,65% 0,55% 25%,75% 40%,50% 60%,65% 85%,40% 100%,0 100%); }
+}
+@keyframes flagStaffChar { from { stroke: #4a1719; } to { stroke: #94715b; } }
+@keyframes flagStaffFall { from { transform: rotate(0); } 65% { transform: rotate(32deg); } to { transform: rotate(24deg); } }
+@keyframes flagFire {
+  0% { opacity: 0; transform: scale(.35,.15); }
+  12% { opacity: .8; transform: scale(.6,.55); }
+  30% { opacity: .95; transform: scale(.9,var(--flag-flame-height)); }
+  45% { opacity: .85; transform: scale(.8,.8); }
+  52% { opacity: .95; transform: scale(1,var(--flag-flame-height)); }
+  72% { opacity: .65; transform: scale(.65,.65); }
+  90% { opacity: .35; transform: scale(.6,.3); }
+  100% { opacity: 0; transform: scale(.4,.1); }
+}
+@keyframes flagSmoke { 0% { opacity: 0; transform: translateY(4px); } 45% { opacity: .4; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes flagAsh { 0% { opacity: 0; transform: translateY(0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(4px,-10px); } }
+@keyframes flagErrorAppear { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .operation-screen *, .operation-screen::before, .operation-screen::after,
+  .operation-screen *::before, .operation-screen *::after { animation: none !important; }
+  .is-wrong-flag .flag-mark__cloth { fill: #61463c; stroke: #c49474; clip-path: polygon(0 0,65% 0,55% 25%,75% 40%,50% 60%,65% 85%,40% 100%,0 100%); }
+  .is-wrong-flag .flag-mark__staff { transform: rotate(24deg); }
+  .is-wrong-flag .flag-mark__pole, .is-wrong-flag .flag-mark__base { stroke: #94715b; }
+  .operation-screen .cell.is-wrong-flag { background: #463b34; }
+  .flag-flame, .flag-smoke, .flag-ash { display: none; }
+  .operation-screen.is-exploding::after { display: none; }
+}
