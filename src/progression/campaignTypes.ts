@@ -69,8 +69,27 @@ export interface CampaignSessionState {
   profiles: Record<string, OperativeSessionProfile>;
 }
 
+export interface FlagDisciplineRecipient {
+  characterId: string;
+  disciplineXp: number;
+  /** Total XP earned in this operation, including base/other bonuses for the acting Sych. */
+  totalXp: number;
+}
+
+export interface FlagDisciplineReward {
+  mineCount: number;
+  manualFlagPlacements: number;
+  unusedFlagBudget: number;
+  perkRate: number;
+  bonusPercent: number;
+  bonusXpPerOperative: number;
+  recipients: FlagDisciplineRecipient[];
+}
+
 export interface MissionResult {
   outcome: "won" | "lost";
+  manualFlagPlacements: number;
+  automaticFlagPlacements: number;
   elapsedSeconds: number;
   xpAwarded: number;
   previousRank: Rank;
@@ -85,6 +104,7 @@ export interface MissionResult {
   sessionEnded: boolean;
   campaignCompleted: boolean;
   perkEvents: string[];
+  flagDiscipline: FlagDisciplineReward | null;
 }
 
 export interface MissionContext {
@@ -96,6 +116,8 @@ export interface MissionContext {
   biome: Biome;
   elapsedSeconds: number;
   flagsPlaced: number;
+  manualFlagPlacements: number;
+  automaticFlagPlacements?: number;
   wrongFlagsPlaced: number;
   damageTaken?: number;
   armorAbsorbed?: number;

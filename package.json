@@ -10,6 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:browser": "node scripts/test-post-blast-flags.mjs",
+    "test:input": "node scripts/test-board-input.mjs",
+    "test:medals": "node scripts/test-medals.mjs",
+    "test:mechanics": "node scripts/test-mechanics-fire.mjs",
     "test:watch": "vitest"
   },
   "engines": {

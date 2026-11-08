@@ -20,7 +20,12 @@ function makeLostState(): BoardState {
   const core = makeCore();
   core.toggleFlag(0, 0);
   core.toggleFlag(1, 1);
-  return core.reveal(3, 3).state;
+  return lose(core, 3, 3);
+}
+
+function lose(core: MinesweeperCore, row: number, col: number): BoardState {
+  expect(core.reveal(row, col).kind).toBe("mine_triggered");
+  return core.resolveMineHit(false);
 }
 
 function deepFreeze<T>(value: T): T {
@@ -31,7 +36,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe("post-blast flag classification", () => {
   it("preserves a correctly placed flag and distinguishes wrong flags, hidden mines and the epicenter", () => {
@@ -60,7 +65,7 @@ describe("post-blast flag classification", () => {
     core.toggleFlag(0, 3); // This mine is now unmarked again.
     core.toggleFlag(0, 0);
     core.toggleFlag(1, 1);
-    const state = core.reveal(3, 3).state;
+    const state = lose(core, 3, 3);
     const review = classifyPostBlastFlags(state);
 
     expect(review?.statistics).toEqual({ correctFlags: 1, wrongFlags: 1, unflaggedMines: 2 });
@@ -117,7 +122,10 @@ describe("post-blast flag classification", () => {
       expect(flags.getElapsedMs()).toBe(0);
     }
 
-    flags.start(core.reveal(3, 3).state);
+    const pendingHit = core.reveal(3, 3);
+    expect(pendingHit.kind).toBe("mine_triggered");
+    expect(classifyPostBlastFlags(pendingHit.state)).toBeNull();
+    flags.start(core.resolveMineHit(false));
     expect(flags.getCellKind("0:0")).toBe("correct-flag");
     expect(flags.getCellKind("1:1")).toBe("wrong-flag");
   });
@@ -142,9 +150,10 @@ describe("post-blast flag classification", () => {
     core.toggleFlag(2, 2);
     const result = core.chordReveal(1, 1);
 
-    expect(result.kind).toBe("lost");
+    expect(result.kind).toBe("mine_triggered");
     expect(result.revealedCells).toHaveLength(0);
-    expect(classifyPostBlastFlags(result.state)).toEqual({
+    expect(classifyPostBlastFlags(result.state)).toBeNull();
+    expect(classifyPostBlastFlags(core.resolveMineHit(false))).toEqual({
       cells: { "0:0": "epicenter", "0:1": "wrong-flag", "2:2": "correct-flag" },
       statistics: { correctFlags: 1, wrongFlags: 1, unflaggedMines: 1 }
     });
@@ -186,7 +195,7 @@ describe("post-blast visual lifecycle", () => {
     flags.start(first);
     now += 1500;
     flags.start(first);
-    flags.start(makeCore().reveal(0, 0).state);
+    flags.start(lose(makeCore(), 0, 0));
 
     expect(flags.getElapsedMs()).toBe(1500);
     expect(flags.getPhase()).toBe("burning");
@@ -210,7 +219,7 @@ describe("post-blast visual lifecycle", () => {
     expect(flags.getElapsedMs()).toBe(0);
     for (const id of ["0:0", "0:3", "1:1", "3:3"]) expect(flags.getCellKind(id)).toBeUndefined();
 
-    flags.start(makeCore().reveal(0, 0).state);
+    flags.start(lose(makeCore(), 0, 0));
     expect(flags.getPhase()).toBe("shockwave");
     expect(flags.getElapsedMs()).toBe(0);
     expect(flags.getCellKind("0:0")).toBe("epicenter");
@@ -230,8 +239,8 @@ describe("post-blast visual lifecycle", () => {
 
 describe("automatic flags from RunManager", () => {
   it.each([
-    { mode: "squad" as const, xp: 500, count: 2 },
-    { mode: "solo" as const, xp: 750, count: 3 }
+    { mode: "squad" as const, xp: 500, count: 3 },
+    { mode: "solo" as const, xp: 750, count: 4 }
   ])("preserves Rom's $count automatic flags after a $mode detonation", ({ mode, xp, count }) => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     const campaign = new CampaignSessionStore();
@@ -248,16 +257,23 @@ describe("automatic flags from RunManager", () => {
     bus.on("GAME_STARTED", () => flags.clear());
     run.newGame({ ...FALLBACK_OPERATION, rows: 12, cols: 12, mines: 40 }, false, { characterId: "rom" });
     run.reveal(0, 0);
+    const expectedCore = new MinesweeperCore({ ...FALLBACK_OPERATION, rows: 12, cols: 12, mines: 40 }, { rng: () => .5 });
+    const expectedCells = expectedCore.reveal(0, 0).state.cells;
+    expect(run.getState().flagsPlaced).toBe(0);
+    expect(run.activateWildIntuition()).toBe(count);
+    expect(run.activateWildIntuition()).toBe(0);
     const playing = run.getState();
     const automaticFlags = playing.cells.filter((cell) => cell.state === "flagged");
 
     expect(playing.status).toBe("playing");
     expect(automaticFlags).toHaveLength(count);
-    expect(automaticFlags.every((cell) => cell.hasMine)).toBe(true);
+    expect(automaticFlags.every(cell => expectedCells.find(expected => expected.id === cell.id)?.hasMine)).toBe(true);
+    expect(automaticFlags.every(cell => !cell.hasMine && cell.adjacentMines === 0)).toBe(true);
+    expect(run.getManualFlagPlacements()).toBe(0);
     expect(flags.getStatistics()).toBeNull();
     automaticFlags.forEach((cell) => expect(flags.getCellKind(cell.id)).toBeUndefined());
 
-    const unflaggedMine = playing.cells.find((cell) => cell.hasMine && cell.state === "hidden");
+    const unflaggedMine = expectedCells.find(cell => cell.hasMine && playing.cells.find(current => current.id === cell.id)?.state === "hidden");
     expect(unflaggedMine).toBeDefined();
     run.reveal(unflaggedMine!.row, unflaggedMine!.col);
 
@@ -274,5 +290,47 @@ describe("automatic flags from RunManager", () => {
     expect(flags.getStatistics()).toBeNull();
     expect(flags.getPhase()).toBeNull();
     automaticFlags.forEach((cell) => expect(flags.getCellKind(cell.id)).toBeUndefined());
+  });
+
+  it("does not expose flag correctness or hidden mines when armor absorbs a detonation", () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(.5);
+    const operation = { ...FALLBACK_OPERATION, rows: 12, cols: 12, mines: 40 };
+    const truth = new MinesweeperCore(operation, { rng: () => .5 }).reveal(0, 0).state;
+    const mines = truth.cells.filter(cell => cell.hasMine);
+    const safe = truth.cells.find(cell => cell.state === "hidden" && !cell.hasMine)!;
+    const campaign = new CampaignSessionStore();
+    campaign.updateProfile("sergei", profile => ({ ...profile, xp: 750, unlockedPerkIds: ["sergei-heavy-landing"] }));
+    const bus = new EventBus<GameEventMap>();
+    const run = new RunManager(bus, campaign);
+    const flags = new PostBlastFlags();
+    const onLoss = vi.fn(({ state }: GameEventMap["RUN_LOST"]) => flags.start(state));
+    const onArmor = vi.fn(({ state }: GameEventMap["ARMOR_ABSORBED"]) => flags.start(state));
+    bus.on("RUN_LOST", onLoss);
+    bus.on("ARMOR_ABSORBED", onArmor);
+    run.newGame(operation, false, { characterId: "sergei" });
+    run.reveal(0, 0);
+    run.toggleFlag(mines[0].row, mines[0].col);
+    run.toggleFlag(safe.row, safe.col);
+    run.reveal(mines[1].row, mines[1].col);
+
+    expect(onArmor).toHaveBeenCalledTimes(1);
+    expect(onLoss).not.toHaveBeenCalled();
+    expect(run.getState().status).toBe("playing");
+    expect(flags.getStatistics()).toBeNull();
+    expect(flags.getCellKind(mines[0].id)).toBeUndefined();
+    expect(flags.getCellKind(safe.id)).toBeUndefined();
+    const publicCells = run.getState().cells;
+    expect(publicCells.filter(cell => cell.state !== "revealed").every(cell => !cell.hasMine && cell.adjacentMines === 0)).toBe(true);
+    expect(publicCells.find(cell => cell.id === mines[1].id)).toMatchObject({ state: "revealed", hasMine: true });
+
+    vi.advanceTimersByTime(BLAST_TIMING.debrief);
+    expect(flags.getStatistics()).toBeNull();
+    run.reveal(mines[2].row, mines[2].col);
+    expect(onLoss).toHaveBeenCalledTimes(1);
+    expect(flags.getStatistics()).toEqual({ correctFlags: 1, wrongFlags: 1, unflaggedMines: 39 });
+    expect(flags.getCellKind(mines[0].id)).toBe("correct-flag");
+    expect(flags.getCellKind(safe.id)).toBe("wrong-flag");
+    expect(flags.getCellKind(mines[2].id)).toBe("epicenter");
   });
 });

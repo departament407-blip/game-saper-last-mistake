@@ -37,6 +37,11 @@ export interface AppRefs {
   prepRoster: HTMLElement;
   characterSelect: HTMLSelectElement;
   operativeBriefing: HTMLElement;
+  dopingPanel: HTMLElement;
+  dopingTarget: HTMLSelectElement;
+  dopingButton: HTMLButtonElement;
+  dopingCharges: HTMLElement;
+  dopingResult: HTMLElement;
   squadStatus: HTMLElement;
   cycleStatus: HTMLElement;
   preparationError: HTMLElement;
@@ -78,6 +83,10 @@ export interface AppRefs {
   operativeRank: HTMLElement;
   operativeHpBar: HTMLElement;
   operativeHpText: HTMLElement;
+  operativeArmor: HTMLElement;
+  intuitionPanel: HTMLElement;
+  intuitionButton: HTMLButtonElement;
+  intuitionHint: HTMLElement;
   operativeStatus: HTMLElement;
   operativeMedals: HTMLElement;
   operativePerks: HTMLElement;
@@ -91,6 +100,7 @@ export interface AppRefs {
   debriefTitle: HTMLElement;
   debriefDetails: HTMLElement;
   debriefFlags: HTMLElement;
+  debriefDiscipline: HTMLElement;
   debriefXp: HTMLElement;
   debriefRank: HTMLElement;
   debriefAwards: HTMLElement;
@@ -189,6 +199,13 @@ export function createApp(root: HTMLElement): AppRefs {
               <div class="prep-roster" data-role="prep-roster"></div>
             </label>
 
+            <section class="doping-panel is-hidden" data-role="doping-panel" aria-label="Допинг">
+              <div class="doping-panel__heading"><strong>Допинг · перк Рома</strong><span data-role="doping-charges"></span></div>
+              <p>Ром восстанавливает живому бойцу до 3 HP. Два применения на всю кампанию.</p>
+              <label class="input-field"><span>Кого вылечить</span><select class="select" data-role="doping-target"></select></label>
+              <button class="button button-secondary" data-role="doping-use" type="button">Восстановить 3 HP</button>
+              <p data-role="doping-result" role="status" aria-live="polite"></p>
+            </section>
             <div class="operative-briefing" data-role="operative-briefing"></div>
           </section>
         </div>
@@ -217,6 +234,7 @@ export function createApp(root: HTMLElement): AppRefs {
                   <strong data-role="operative-hp-text">0/0</strong>
                 </div>
                 <div data-role="operative-hp-bar"></div>
+                <div class="armor-indicator is-hidden" data-role="operative-armor" role="status"></div>
               </div>
 
               <div class="status-card">
@@ -289,6 +307,10 @@ export function createApp(root: HTMLElement): AppRefs {
             </section>
 
             <p class="message" data-role="message">${t("hud.instruction")}</p>
+            <section class="intuition-panel is-hidden" data-role="intuition-panel">
+              <button type="button" class="button button-secondary" data-role="intuition-button">Шальная интуиция — 1 заряд</button>
+              <p data-role="intuition-hint" role="status"></p>
+            </section>
 
             <div class="board-wrap" data-role="board-wrap">
               <div class="board" data-role="board" aria-label="Минное поле"></div>
@@ -315,6 +337,7 @@ export function createApp(root: HTMLElement): AppRefs {
           <h2 data-role="debrief-title">${t("debrief.title")}</h2>
           <p data-role="debrief-details"></p>
           <dl class="debrief-flags is-hidden" data-role="debrief-flags"></dl>
+          <section class="discipline-report is-hidden" data-role="debrief-discipline"></section>
           <div class="debrief-stats">
             <div>
               <span class="hud-label">${t("debrief.xp")}</span>
@@ -419,6 +442,11 @@ export function createApp(root: HTMLElement): AppRefs {
     prepRoster: query(root, "[data-role='prep-roster']"),
     characterSelect: query<HTMLSelectElement>(root, "[data-role='character']"),
     operativeBriefing: query(root, "[data-role='operative-briefing']"),
+    dopingPanel: query(root, "[data-role='doping-panel']"),
+    dopingTarget: query<HTMLSelectElement>(root, "[data-role='doping-target']"),
+    dopingButton: query<HTMLButtonElement>(root, "[data-role='doping-use']"),
+    dopingCharges: query(root, "[data-role='doping-charges']"),
+    dopingResult: query(root, "[data-role='doping-result']"),
     squadStatus: query(root, "[data-role='squad-status']"),
     cycleStatus: query(root, "[data-role='cycle-status']"),
     preparationError: query(root, "[data-role='preparation-error']"),
@@ -460,6 +488,10 @@ export function createApp(root: HTMLElement): AppRefs {
     operativeRank: query(root, "[data-role='operative-rank']"),
     operativeHpBar: query(root, "[data-role='operative-hp-bar']"),
     operativeHpText: query(root, "[data-role='operative-hp-text']"),
+    operativeArmor: query(root, "[data-role='operative-armor']"),
+    intuitionPanel: query(root, "[data-role='intuition-panel']"),
+    intuitionButton: query<HTMLButtonElement>(root, "[data-role='intuition-button']"),
+    intuitionHint: query(root, "[data-role='intuition-hint']"),
     operativeStatus: query(root, "[data-role='operative-status']"),
     operativeMedals: query(root, "[data-role='operative-medals']"),
     operativePerks: query(root, "[data-role='operative-perks']"),
@@ -473,6 +505,7 @@ export function createApp(root: HTMLElement): AppRefs {
     debriefTitle: query(root, "[data-role='debrief-title']"),
     debriefDetails: query(root, "[data-role='debrief-details']"),
     debriefFlags: query(root, "[data-role='debrief-flags']"),
+    debriefDiscipline: query(root, "[data-role='debrief-discipline']"),
     debriefXp: query(root, "[data-role='debrief-xp']"),
     debriefRank: query(root, "[data-role='debrief-rank']"),
     debriefAwards: query(root, "[data-role='debrief-awards']"),
@@ -502,6 +535,7 @@ export function showScreen(refs: AppRefs, screen: AppScreen): void {
   refs.recordsScreen.classList.toggle("is-hidden", screen !== "records");
   refs.profileScreen.classList.toggle("is-hidden", screen !== "profile");
   refs.game.dataset.view = screen;
+  refs.operationScreen.dispatchEvent(new CustomEvent("operation-visibility", { detail: operationVisible }));
 }
 
 function renderModeCard(mode: CampaignMode): string {

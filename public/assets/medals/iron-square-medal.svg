@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 124" role="img" aria-labelledby="title">
+  <title id="title">Медаль железного квадрата</title>
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbffff"/><stop offset=".22" stop-color="#bdcbd1"/><stop offset=".46" stop-color="#fbffff"/><stop offset=".6" stop-color="#506772"/><stop offset=".85" stop-color="#bdcbd1"/><stop offset="1" stop-color="#506772"/></linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#0d1518"/><stop offset=".2" stop-color="#743e36"/><stop offset=".5" stop-color="#743e36"/><stop offset=".65" stop-color="#a9b2ae" stop-opacity=".6"/><stop offset=".74" stop-color="#743e36"/><stop offset="1" stop-color="#162025"/></linearGradient>
+    <radialGradient id="enamel" cx=".35" cy=".25" r=".8"><stop stop-color="#233c43"/><stop offset=".55" stop-color="#233c43"/><stop offset="1" stop-color="#121e22"/></radialGradient>
+    <linearGradient id="relief" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#fbffff"/><stop offset=".45" stop-color="#d2e0de"/><stop offset="1" stop-color="#bdcbd1"/></linearGradient>
+    <clipPath id="ribbonClip"><path d="M24 7h48v26L48 49 24 33z"/></clipPath>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.2" flood-color="#0a1012" flood-opacity=".5"/></filter>
+    <g id="emblem"><path d="M30 96V79l10-7v8l11-8v8h15v16z"/><path d="M58 79V62h6v17z"/><path d="M35 85h5v5h-5zm11 0h5v5h-5zm11 0h5v5h-5z" fill="#253c43"/><path d="M60 59c-3-5 4-5 2-9" fill="none" stroke-width="2"/></g>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M24 7h48v26L48 49 24 33z" fill="url(#ribbon)" stroke="#1a282c" stroke-width="1.2"/>
+    <g clip-path="url(#ribbonClip)">
+      <path d="M29 6h5v40h-5zm33 0h5v40h-5z" fill="#a9b2ae"/>
+      <path d="M45 6h6v44h-6z" fill="#a9b2ae" opacity=".85"/>
+      <path d="M26 8v30m3-30v32m7-32v35m3-35v38m3-38v40m10-40v40m3-40v38m3-38v35m10-35v30" stroke="#fff" stroke-opacity=".1" stroke-width=".65"/>
+      <path d="M23 31 48 46 73 31" fill="none" stroke="#060b10" stroke-opacity=".45" stroke-width="3"/>
+    </g>
+    <rect x="21" y="5" width="54" height="7" rx="2" fill="url(#metal)" stroke="#506772"/>
+    <path d="M26 7h44" stroke="#fbffff" stroke-width="1.2" opacity=".7"/>
+    <ellipse cx="48" cy="48" rx="5" ry="7" fill="none" stroke="#506772" stroke-width="5"/>
+    <ellipse cx="48" cy="47" rx="5" ry="7" fill="none" stroke="url(#metal)" stroke-width="3"/>
+    <g fill="url(#metal)" stroke="#506772" stroke-width="1.4"><path d="M32 49h32l17 17v32l-17 17H32L15 98V66z"/></g>
+    <circle cx="48" cy="82" r="28" fill="none" stroke="#fbffff" stroke-opacity=".7" stroke-width="1"/>
+    <g fill="#506772" opacity=".75"><circle cx="76.30" cy="82.00" r=".8"/><circle cx="75.59" cy="88.30" r=".8"/><circle cx="73.50" cy="94.28" r=".8"/><circle cx="70.13" cy="99.64" r=".8"/><circle cx="65.64" cy="104.13" r=".8"/><circle cx="60.28" cy="107.50" r=".8"/><circle cx="54.30" cy="109.59" r=".8"/><circle cx="48.00" cy="110.30" r=".8"/><circle cx="41.70" cy="109.59" r=".8"/><circle cx="35.72" cy="107.50" r=".8"/><circle cx="30.36" cy="104.13" r=".8"/><circle cx="25.87" cy="99.64" r=".8"/><circle cx="22.50" cy="94.28" r=".8"/><circle cx="20.41" cy="88.30" r=".8"/><circle cx="19.70" cy="82.00" r=".8"/><circle cx="20.41" cy="75.70" r=".8"/><circle cx="22.50" cy="69.72" r=".8"/><circle cx="25.87" cy="64.36" r=".8"/><circle cx="30.36" cy="59.87" r=".8"/><circle cx="35.72" cy="56.50" r=".8"/><circle cx="41.70" cy="54.41" r=".8"/><circle cx="48.00" cy="53.70" r=".8"/><circle cx="54.30" cy="54.41" r=".8"/><circle cx="60.28" cy="56.50" r=".8"/><circle cx="65.64" cy="59.87" r=".8"/><circle cx="70.13" cy="64.36" r=".8"/><circle cx="73.50" cy="69.72" r=".8"/><circle cx="75.59" cy="75.70" r=".8"/></g>
+    <circle cx="48" cy="82" r="25.8" fill="#506772"/>
+    <circle cx="48" cy="81.5" r="24" fill="url(#enamel)" stroke="#d2e0de" stroke-width="1.2"/>
+    <path d="M28 85c1 12 10 19 20 19s19-7 20-19" fill="none" stroke="#bdcbd1" stroke-width="1.3"/>
+    <path d="m31 89-5-2 3 6 4 1m2 2-5-1 4 5 4-1m5 3-5-2 2 5 5-1m20-15 5-2-3 6-4 1m-2 2 5-1-4 5-4-1m-5 3 5-2-2 5-5-1" fill="#bdcbd1" opacity=".8"/>
+    <use href="#emblem" fill="#08181c" stroke="#08181c" stroke-width="1.2" transform="translate(0 1.3)"/>
+    <use href="#emblem" fill="url(#relief)" stroke="#d2e0de" stroke-width=".7" stroke-linejoin="round"/>
+    <path d="m26 64 5-3m-9 17 2-5m39 31 6-5m-30 11 4 1" fill="none" stroke="#fbffff" stroke-opacity=".55" stroke-width=".8"/>
+    <path d="m23 92 4 3m31-42 4 3m11 31-2 3" fill="none" stroke="#151b1c" stroke-opacity=".4" stroke-width="1"/>
+    <path d="M25 73c3-11 13-19 23-19" fill="none" stroke="#fbffff" stroke-opacity=".7" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+</svg>

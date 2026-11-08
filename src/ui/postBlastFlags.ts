@@ -1,6 +1,7 @@
 import type { BoardState } from "../core/types";
 
-export const BLAST_TIMING = Object.freeze({ ignition: 900, settling: 2500, debrief: 4000 });
+import { BLAST_TIMING } from "../run/blastTiming";
+export { BLAST_TIMING } from "../run/blastTiming";
 export type PostBlastCellKind = "correct-flag" | "wrong-flag" | "unflagged-mine" | "epicenter";
 export type BlastPhase = "shockwave" | "burning" | "settling" | "aftermath";
 

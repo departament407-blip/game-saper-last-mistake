@@ -59,8 +59,8 @@ export const CHARACTERS: Character[] = [
     startingPerkId: "sych-flag-discipline",
     innateTrait: {
       label: "Флажковая дисциплина",
-      squadDescription: "Флажковая дисциплина: +2% XP за каждый неиспользованный флаг, максимум +20%.",
-      soloDescription: "Флажковая дисциплина: +2% XP за каждый неиспользованный флаг, максимум +20%."
+      squadDescription: "При победе Сыча каждый живой оперативник получает +2% базового XP за каждый неиспользованный флаг, максимум +60% каждому. Считаются все ручные постановки, включая снятые; автофлаги не учитываются.",
+      soloDescription: "При победе Сыч получает +2% базового XP за каждый неиспользованный флаг, максимум +60%. Считаются все ручные постановки, включая снятые; автофлаги не учитываются."
     },
     unlockablePerkIds: ["sych-flag-discipline", "sych-night-patience"],
     lines: {
@@ -131,7 +131,7 @@ export const CHARACTERS: Character[] = [
       squadDescription: "Пьяный мастер: после первого клика раскрывает 2 безопасные клетки вдали от открытого поля.",
       soloDescription: "Пьяный мастер: после первого клика раскрывает 2 безопасные клетки вдали от открытого поля."
     },
-    unlockablePerkIds: ["rom-drunk-master", "rom-wild-intuition"],
+    unlockablePerkIds: ["rom-drunk-master", "rom-wild-intuition", "rom-doping"],
     lines: {
       start: "Сначала поле, потом геройство.",
       win: "Вот это уже похоже на работу.",

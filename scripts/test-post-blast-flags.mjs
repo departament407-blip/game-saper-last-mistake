@@ -27,7 +27,8 @@ async function startGame(options = {}) {
   await page.locator('[data-role="main-start"]').click();
   await page.locator('[data-role="start-operation"]').click();
   await page.evaluate(() => { window.flagTestSeed = 12345; });
-  await page.locator('.cell[data-cell-id="0:0"]').click();
+  if (options.isMobile) await page.locator('.cell[data-cell-id="0:0"]').tap();
+  else await page.locator('.cell[data-cell-id="0:0"]').click();
   // A separate deterministic core supplies the expected layout; no production debug hooks.
   const targets = await page.evaluate(async () => {
     const { MinesweeperCore } = await import("/src/core/minesweeperCore.ts");
@@ -61,7 +62,8 @@ async function startGame(options = {}) {
   }
   assert.equal(await page.locator('.flag-error, .flag-confirmed, .is-unflagged-mine').count(), 0);
   const intact = await cell(targets.correct).locator(".flag-mark").innerHTML();
-  await cell(targets.epicenter).click();
+  if (options.isMobile) await cell(targets.epicenter).tap();
+  else await cell(targets.epicenter).click();
   const startedAt = Date.now();
   async function until(ms) { await page.waitForTimeout(Math.max(0, ms - (Date.now() - startedAt))); }
   return { context, page, errors, targets, cell, intact, until };
@@ -174,15 +176,15 @@ try {
   await page.goto(`${baseURL}/__flag-view-test`);
   const outcomes = await page.evaluate(async () => {
     const [{ EventBus }, { CampaignSessionStore }, { RunManager }, { BoardView }, { HudView },
-      { PostBlastFlags }, { createApp }, { FALLBACK_OPERATION }] = await Promise.all([
+      { PostBlastFlags }, { createApp }, { FALLBACK_OPERATION }, { MinesweeperCore }] = await Promise.all([
       import("/src/events/eventBus.ts"), import("/src/progression/campaignSessionStore.ts"),
       import("/src/run/runManager.ts"), import("/src/ui/boardView.ts"), import("/src/ui/hudView.ts"),
-      import("/src/ui/postBlastFlags.ts"), import("/src/ui/screens.ts"), import("/src/data/operations.ts")
+      import("/src/ui/postBlastFlags.ts"), import("/src/ui/screens.ts"), import("/src/data/operations.ts"), import("/src/core/minesweeperCore.ts")
     ]);
     const reports = [];
     for (const scenario of [
       { characterId: "olga", hp: 1, xp: 0, perks: [] },
-      { characterId: "sergei", hp: 1, xp: 1000, perks: ["sergei-heavy-landing"] }
+      { characterId: "sergei", hp: 5, xp: 1000, perks: ["sergei-heavy-landing"] }
     ]) {
       Math.random = () => .5;
       const campaign = new CampaignSessionStore();
@@ -195,24 +197,41 @@ try {
       const hud = new HudView(refs, run, bus, review);
       let premature = null;
       let result = null;
-      bus.on("CELL_REVEALED", ({ result }) => {
-        if (result.state.status === "lost") {
-          premature = { statistics: review.getStatistics(), marked: refs.board.querySelectorAll('.is-correct-flag, .is-wrong-flag').length };
-        }
+      bus.on("MINE_TRIGGERED", () => {
+        premature = { statistics: review.getStatistics(), marked: refs.board.querySelectorAll('.is-correct-flag, .is-wrong-flag').length };
       });
       bus.on("RUN_LOST", event => { result = event.result; });
-      run.newGame({ ...FALLBACK_OPERATION, rows: 12, cols: 12, mines: 40 }, false, { characterId: scenario.characterId });
+      const operation = { ...FALLBACK_OPERATION, rows: 12, cols: 12, mines: 40 };
+      run.newGame(operation, false, { characterId: scenario.characterId });
       run.reveal(0, 0);
-      const cells = run.getState().cells;
+      // Active-run UI state intentionally masks hidden mines. Expected targets come from a separate core.
+      const cells = new MinesweeperCore(operation, { rng: () => .5 }).reveal(0, 0).state.cells;
       const mines = cells.filter(cell => cell.hasMine);
       const wrong = cells.find(cell => !cell.hasMine && cell.state === "hidden");
       run.toggleFlag(mines[0].row, mines[0].col);
       run.toggleFlag(wrong.row, wrong.col);
       run.reveal(mines[1].row, mines[1].col);
+      let protectedHit = null;
+      if (scenario.characterId === "sergei") {
+        protectedHit = {
+          status: run.getState().status,
+          hp: campaign.getProfile("sergei").hp,
+          charge: run.getTemporaryArmor(),
+          result,
+          statistics: review.getStatistics(),
+          classified: refs.board.querySelectorAll('.is-correct-flag, .is-wrong-flag, .is-unflagged-mine').length,
+          hiddenMines: run.getState().cells.filter(cell => cell.state !== "revealed" && cell.hasMine).length,
+          locked: run.isInputLocked()
+        };
+        await new Promise(resolve => setTimeout(resolve, 4050));
+        protectedHit.unlocked = !run.isInputLocked();
+        run.reveal(mines[2].row, mines[2].col);
+      }
       const beforeRender = JSON.stringify(run.getState());
       view.setFlagMode(true);
       const report = {
         status: result.profile.status,
+        protectedHit,
         statistics: review.getStatistics(),
         premature,
         unchanged: beforeRender === JSON.stringify(run.getState()),
@@ -229,6 +248,11 @@ try {
     return reports;
   });
   assert.deepEqual(outcomes.map(result => result.status), ["fallen", "active"]);
+  assert.equal(outcomes[0].protectedHit, null);
+  assert.deepEqual(outcomes[1].protectedHit, {
+    status: "playing", hp: 5, charge: 0, result: null, statistics: null,
+    classified: 0, hiddenMines: 0, locked: true, unlocked: true
+  });
   for (const outcome of outcomes) {
     assert.deepEqual(outcome.statistics, { correctFlags: 1, wrongFlags: 1, unflaggedMines: 39 });
     assert.deepEqual(outcome.premature, { statistics: null, marked: 0 });

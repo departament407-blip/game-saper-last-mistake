@@ -5,6 +5,7 @@ import { getPerkTierByXp } from "../data/rankBenefits";
 import { getBiomeLabel, getModeLabel, t } from "../localization/i18n";
 import type { LeaderboardRecord } from "../leaderboard/leaderboardTypes";
 import type { CampaignMode, OperativeBestResult, OperativeSessionProfile } from "../progression/campaignTypes";
+import { renderMedalBadge, renderMedalAward } from "./medalRenderer";
 
 type RecordLike = OperativeBestResult | LeaderboardRecord;
 
@@ -21,7 +22,7 @@ export function renderHpBar(currentHp: number, maxHp: number): string {
   `;
 }
 
-export function renderMedalStrip(medalIds: string[], emptyText: string): string {
+export function renderMedalStrip(medalIds: string[], emptyText: string, newMedalIds: string[] = []): string {
   if (medalIds.length === 0) {
     return `<span class="empty-note">${emptyText}</span>`;
   }
@@ -29,12 +30,7 @@ export function renderMedalStrip(medalIds: string[], emptyText: string): string 
   return medalIds
     .map((id) => MEDALS.find((medal) => medal.id === id))
     .filter((medal): medal is NonNullable<typeof medal> => Boolean(medal))
-    .map((medal) => `
-      <span class="medal-chip" title="${medal.label}: ${medal.description}">
-        <img class="medal-chip__image" alt="" src="${medal.assetPath}" onerror="this.hidden=true">
-        <span class="medal-chip__fallback" aria-hidden="true">${medal.icon}</span>
-      </span>
-    `)
+    .map((medal) => renderMedalBadge(medal, { isNew: newMedalIds.includes(medal.id) }))
     .join("");
 }
 
@@ -61,6 +57,8 @@ export function renderUnlockedAwards(ids: string[], type: "achievement" | "medal
   if (ids.length === 0) {
     return `<span class="award-pill muted">${emptyText}</span>`;
   }
+
+  if (type === "medal") return ids.map(id => renderMedalAward(id, false)).join("");
 
   const source = type === "achievement" ? ACHIEVEMENTS : MEDALS;
   const className = type === "achievement" ? "award-pill" : "award-pill medal";

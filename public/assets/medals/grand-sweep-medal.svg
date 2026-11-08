@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 124" role="img" aria-labelledby="title">
+  <title id="title">Медаль большой зачистки</title>
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff9b9"/><stop offset=".22" stop-color="#edc258"/><stop offset=".46" stop-color="#fff9b9"/><stop offset=".6" stop-color="#8c5b21"/><stop offset=".85" stop-color="#edc258"/><stop offset="1" stop-color="#8c5b21"/></linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#0d1518"/><stop offset=".2" stop-color="#542b43"/><stop offset=".5" stop-color="#542b43"/><stop offset=".65" stop-color="#cdb271" stop-opacity=".6"/><stop offset=".74" stop-color="#542b43"/><stop offset="1" stop-color="#162025"/></linearGradient>
+    <radialGradient id="enamel" cx=".35" cy=".25" r=".8"><stop stop-color="#4c3718"/><stop offset=".55" stop-color="#4c3718"/><stop offset="1" stop-color="#121e22"/></radialGradient>
+    <linearGradient id="relief" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#fff9b9"/><stop offset=".45" stop-color="#f9da78"/><stop offset="1" stop-color="#edc258"/></linearGradient>
+    <clipPath id="ribbonClip"><path d="M24 7h48v26L48 49 24 33z"/></clipPath>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.2" flood-color="#0a1012" flood-opacity=".5"/></filter>
+    <g id="emblem"><path d="m48 59 6 13 15 2-11 11 3 15-13-7-13 7 3-15-11-11 15-2z"/><path d="m48 68 3 10 10 1-8 6 3 10-8-6-8 6 3-10-8-6 10-1z" fill="#244844"/><path d="M48 73v15m-6-7h12" fill="none" stroke-width="2"/></g>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M24 7h48v26L48 49 24 33z" fill="url(#ribbon)" stroke="#1a282c" stroke-width="1.2"/>
+    <g clip-path="url(#ribbonClip)">
+      <path d="M29 6h5v40h-5zm33 0h5v40h-5z" fill="#cdb271"/>
+      <path d="M45 6h6v44h-6z" fill="#cdb271" opacity=".85"/>
+      <path d="M26 8v30m3-30v32m7-32v35m3-35v38m3-38v40m10-40v40m3-40v38m3-38v35m10-35v30" stroke="#fff" stroke-opacity=".1" stroke-width=".65"/>
+      <path d="M23 31 48 46 73 31" fill="none" stroke="#060b10" stroke-opacity=".45" stroke-width="3"/>
+    </g>
+    <rect x="21" y="5" width="54" height="7" rx="2" fill="url(#metal)" stroke="#8c5b21"/>
+    <path d="M26 7h44" stroke="#fff9b9" stroke-width="1.2" opacity=".7"/>
+    <ellipse cx="48" cy="48" rx="5" ry="7" fill="none" stroke="#8c5b21" stroke-width="5"/>
+    <ellipse cx="48" cy="47" rx="5" ry="7" fill="none" stroke="url(#metal)" stroke-width="3"/>
+    <g fill="url(#metal)" stroke="#8c5b21" stroke-width="1.4"><path d="m48 44 9 12 15-7 1 17 17 5-10 14 9 14-16 5-1 14-16-6-8 8-9-8-15 6-1-14-16-5 9-14L6 71l17-5 1-17 15 7z"/></g>
+    <circle cx="48" cy="82" r="28" fill="none" stroke="#fff9b9" stroke-opacity=".7" stroke-width="1"/>
+    <g fill="#8c5b21" opacity=".75"><circle cx="76.30" cy="82.00" r=".8"/><circle cx="75.59" cy="88.30" r=".8"/><circle cx="73.50" cy="94.28" r=".8"/><circle cx="70.13" cy="99.64" r=".8"/><circle cx="65.64" cy="104.13" r=".8"/><circle cx="60.28" cy="107.50" r=".8"/><circle cx="54.30" cy="109.59" r=".8"/><circle cx="48.00" cy="110.30" r=".8"/><circle cx="41.70" cy="109.59" r=".8"/><circle cx="35.72" cy="107.50" r=".8"/><circle cx="30.36" cy="104.13" r=".8"/><circle cx="25.87" cy="99.64" r=".8"/><circle cx="22.50" cy="94.28" r=".8"/><circle cx="20.41" cy="88.30" r=".8"/><circle cx="19.70" cy="82.00" r=".8"/><circle cx="20.41" cy="75.70" r=".8"/><circle cx="22.50" cy="69.72" r=".8"/><circle cx="25.87" cy="64.36" r=".8"/><circle cx="30.36" cy="59.87" r=".8"/><circle cx="35.72" cy="56.50" r=".8"/><circle cx="41.70" cy="54.41" r=".8"/><circle cx="48.00" cy="53.70" r=".8"/><circle cx="54.30" cy="54.41" r=".8"/><circle cx="60.28" cy="56.50" r=".8"/><circle cx="65.64" cy="59.87" r=".8"/><circle cx="70.13" cy="64.36" r=".8"/><circle cx="73.50" cy="69.72" r=".8"/><circle cx="75.59" cy="75.70" r=".8"/></g>
+    <circle cx="48" cy="82" r="25.8" fill="#8c5b21"/>
+    <circle cx="48" cy="81.5" r="24" fill="url(#enamel)" stroke="#f9da78" stroke-width="1.2"/>
+    <path d="M28 85c1 12 10 19 20 19s19-7 20-19" fill="none" stroke="#edc258" stroke-width="1.3"/>
+    <path d="m31 89-5-2 3 6 4 1m2 2-5-1 4 5 4-1m5 3-5-2 2 5 5-1m20-15 5-2-3 6-4 1m-2 2 5-1-4 5-4-1m-5 3 5-2-2 5-5-1" fill="#edc258" opacity=".8"/>
+    <use href="#emblem" fill="#08181c" stroke="#08181c" stroke-width="1.2" transform="translate(0 1.3)"/>
+    <use href="#emblem" fill="url(#relief)" stroke="#f9da78" stroke-width=".7" stroke-linejoin="round"/>
+    <path d="m26 64 5-3m-9 17 2-5m39 31 6-5m-30 11 4 1" fill="none" stroke="#fff9b9" stroke-opacity=".55" stroke-width=".8"/>
+    <path d="m23 92 4 3m31-42 4 3m11 31-2 3" fill="none" stroke="#151b1c" stroke-opacity=".4" stroke-width="1"/>
+    <path d="M25 73c3-11 13-19 23-19" fill="none" stroke="#fff9b9" stroke-opacity=".7" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+</svg>

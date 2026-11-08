@@ -5,13 +5,15 @@ import type { RunManager } from "../run/runManager";
 import { FLAG_MARKUP, renderMine, renderPostBlastObject } from "./boardObjects";
 import { BLAST_TIMING, type PostBlastFlags } from "./postBlastFlags";
 import { t } from "../localization/i18n";
+import { BoardInputController } from "./boardInputController";
+import "./boardInput.css";
 
 export interface BoardViewOptions {
   onTacticalCell?: (row: number, col: number) => void;
 }
 
 export class BoardView {
-  private suppressCellId: string | null = null;
+  private readonly input: BoardInputController;
   private tacticalMode = false;
   private flagMode = false;
   private tacticalCellIds = new Set<string>();
@@ -24,6 +26,20 @@ export class BoardView {
     private readonly postBlastFlags: PostBlastFlags,
     private readonly options: BoardViewOptions = {}
   ) {
+    this.input = new BoardInputController(board, {
+      getState: () => this.runManager.getState(),
+      isLocked: () => {
+        const status = this.runManager.getState().status;
+        return this.runManager.isInputLocked() || (status !== "idle" && status !== "playing");
+      },
+      getMode: () => this.tacticalMode ? "tactical" : this.flagMode ? "flag" : "reveal",
+      onAction: (action, cell) => {
+        if (action === "tactical") this.options.onTacticalCell?.(cell.row, cell.col);
+        else if (action === "flag") this.runManager.toggleFlag(cell.row, cell.col);
+        else if (action === "chord") this.runManager.chordReveal(cell.row, cell.col);
+        else this.runManager.reveal(cell.row, cell.col);
+      }
+    });
     bus.on("GAME_STARTED", ({ state }) => {
       this.clearAftermath();
       this.render(state);
@@ -31,9 +47,17 @@ export class BoardView {
     bus.on("GAME_RESET", () => this.clearAftermath());
     bus.on("CELL_REVEALED", ({ result }) => this.render(result.state));
     bus.on("FLAG_TOGGLED", ({ result }) => this.render(result.state));
+    bus.on("ACTIVE_PERK_USED", ({ cellIds }) => {
+      const flagged = new Set(cellIds);
+      this.board.querySelectorAll<HTMLElement>(".cell.is-flagged").forEach((cell) => {
+        if (flagged.has(cell.dataset.cellId!)) cell.classList.add("is-auto-flagged");
+      });
+    });
     bus.on("CHORD_SUCCEEDED", ({ result }) => this.render(result.state));
     bus.on("CHORD_FAILED", ({ result }) => this.render(result.state));
     bus.on("RUN_WON", ({ state }) => this.render(state));
+    bus.on("MINE_TRIGGERED", ({ state }) => this.render(state));
+    bus.on("BLAST_RECOVERED", ({ state }) => this.render(state));
     bus.on("RUN_LOST", ({ state }) => {
       this.postBlastFlags.start(state);
       this.render(state);
@@ -64,6 +88,7 @@ export class BoardView {
   }
 
   clearAftermath(): void {
+    this.input.cancel();
     if (this.postBlastFlags.getStatistics()) this.board.replaceChildren();
     this.postBlastFlags.clear();
     this.board.style.removeProperty("--flag-ignition-delay");
@@ -71,6 +96,7 @@ export class BoardView {
   }
 
   render(state: BoardState): void {
+    this.input.cancel();
     this.boardWrap.style.setProperty("--cols", String(state.cols));
     this.board.style.setProperty("--cols", String(state.cols));
     this.boardWrap.dataset.boardCols = String(state.cols);
@@ -86,68 +112,12 @@ export class BoardView {
       const button = document.createElement("button");
       button.type = "button";
       button.className = this.getCellClass(cell, state);
-      button.disabled = state.status === "won" || state.status === "lost";
+      button.disabled = this.runManager.isInputLocked() || (state.status !== "idle" && state.status !== "playing");
       button.dataset.row = String(cell.row);
       button.dataset.col = String(cell.col);
       button.dataset.cellId = cell.id;
       button.setAttribute("aria-label", this.getCellLabel(cell, state));
       button.innerHTML = this.getCellMarkup(cell, state);
-
-      button.addEventListener("click", (event) => {
-        if (this.tacticalMode) {
-          event.preventDefault();
-          this.options.onTacticalCell?.(cell.row, cell.col);
-          return;
-        }
-
-        if (this.suppressCellId === cell.id) {
-          this.suppressCellId = null;
-          return;
-        }
-
-        if (this.flagMode && state.status === "playing" && cell.state !== "revealed") {
-          this.runManager.toggleFlag(cell.row, cell.col);
-          return;
-        }
-
-        if (event.shiftKey) {
-          this.runManager.chordReveal(cell.row, cell.col);
-          return;
-        }
-
-        this.runManager.reveal(cell.row, cell.col);
-      });
-
-      button.addEventListener("dblclick", (event) => {
-        event.preventDefault();
-        this.runManager.chordReveal(cell.row, cell.col);
-      });
-
-      button.addEventListener("mousedown", (event) => {
-        if (event.buttons !== 3) {
-          return;
-        }
-
-        event.preventDefault();
-        this.suppressCellId = cell.id;
-        this.runManager.chordReveal(cell.row, cell.col);
-        window.setTimeout(() => {
-          if (this.suppressCellId === cell.id) {
-            this.suppressCellId = null;
-          }
-        }, 250);
-      });
-
-      button.addEventListener("contextmenu", (event) => {
-        event.preventDefault();
-
-        if (this.suppressCellId === cell.id) {
-          this.suppressCellId = null;
-          return;
-        }
-
-        this.runManager.toggleFlag(cell.row, cell.col);
-      });
 
       this.board.appendChild(button);
     });
@@ -165,7 +135,7 @@ export class BoardView {
     }
 
     if (cell.hasMine) {
-      return renderMine();
+      return renderMine(true);
     }
 
     return cell.adjacentMines > 0 ? String(cell.adjacentMines) : "";
@@ -194,6 +164,7 @@ export class BoardView {
 
     if (cell.state === "revealed") {
       classes.push("is-revealed");
+      if (cell.hasMine && state.status !== "lost") classes.push("is-local-crater");
     }
 
     if (cell.state === "revealed" && cell.adjacentMines > 0 && !cell.hasMine) {
@@ -245,6 +216,7 @@ export class BoardView {
     }
 
     if (cell.state === "revealed") {
+      if (cell.hasMine) return t("aftermath.epicenter", { row: cell.row + 1, col: cell.col + 1 });
       return cell.adjacentMines > 0 ? `Рядом мин: ${cell.adjacentMines}` : "Пусто";
     }
 

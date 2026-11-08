@@ -34,9 +34,12 @@ npm test
 ```bash
 npx playwright install chromium
 npm run test:browser
+npm run test:input
+npm run test:medals
+npm run test:mechanics
 ```
 
-Снимки сохраняются в `.vite/flag-browser/`. Для другого адреса сервера задайте `TEST_BASE_URL`.
+Снимки флагов сохраняются в `.vite/flag-browser/`, медалей — `.vite/medal-gallery/`, фазы огня и видео — `.vite/mechanics-fire/`. Для другого адреса сервера задайте `TEST_BASE_URL`. Полный отчёт: [механики и визуальные проверки](docs/IMPLEMENTATION_REVIEW.md), [баланс](docs/BALANCE_REPORT.md), [медали](docs/ASSET_MANIFEST.md).
 
 ## Production build
 

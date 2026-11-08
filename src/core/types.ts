@@ -1,4 +1,4 @@
-export type GameStatus = "idle" | "playing" | "won" | "lost";
+export type GameStatus = "idle" | "playing" | "detonating" | "won" | "lost";
 export type CellState = "hidden" | "revealed" | "flagged" | "blocked";
 
 export interface Coordinate {
@@ -43,7 +43,7 @@ export interface BoardState {
 }
 
 export interface RevealResult {
-  kind: "ignored" | "revealed" | "won" | "lost";
+  kind: "ignored" | "revealed" | "mine_triggered" | "won" | "lost";
   revealedCells: Cell[];
   explodedCell: Cell | null;
   state: BoardState;
@@ -56,7 +56,7 @@ export interface FlagResult {
 }
 
 export interface ChordResult {
-  kind: "ignored" | "chord_failed" | "chord_succeeded" | "won" | "lost";
+  kind: "ignored" | "chord_failed" | "chord_succeeded" | "mine_triggered" | "won" | "lost";
   sourceCell: Cell | null;
   revealedCells: Cell[];
   explodedCell: Cell | null;

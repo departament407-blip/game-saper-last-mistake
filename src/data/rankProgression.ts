@@ -48,10 +48,6 @@ export function getRankProgressionForCharacter(characterId: string, mode: Campai
       bonuses.push(`Бонус ранга к итоговому счёту рекорда: +${index * 10} очков.`);
     }
 
-    if (index === 8) {
-      bonuses.push("Высокорисковые операции в брифинге становятся заметнее для планирования состава.");
-    }
-
     if (index === 10) {
       bonuses.push("Элитная подготовка: все открытые перки уже работают на максимальной ступени.");
     }
